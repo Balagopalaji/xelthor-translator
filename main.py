@@ -14,13 +14,14 @@ def print_header():
 
 def print_menu():
     """Display the main menu options."""
-    print("\nAvailable Options:")
-    print("1. English to Xel'thor Translation")
-    print("2. Xel'thor to English Translation")
-    print("3. View Vocabulary")
-    print("4. View Grammar Rules")
-    print("5. Exit")
-    print("\n" + "-"*40)
+    print("\n=== Xel'thor Translator ===")
+    print("1. English to Xel'thor")
+    print("2. Xel'thor to English")
+    print("3. View vocabulary")
+    print("4. View grammar rules")
+    print("5. View special phrases")
+    print("6. Exit")
+    print("========================")
 
 def print_grammar_rules():
     """Display the Xel'thor grammar rules."""
@@ -37,6 +38,13 @@ def print_grammar_rules():
     print("   - Eternal: -th (harmonic tone)")
     print("\nExample: 'zz'rix-pa xel'thor vor'thal'")
     print("Means: 'The traveler traveled through space' (past tense)")
+
+def print_special_phrases(translator):
+    """Display special Xel'thor phrases and their meanings."""
+    print("\nXel'thor Special Phrases:")
+    print("-" * 40)
+    for eng, xel in translator.special_phrases.items():
+        print(f"{eng:20} = {xel}")
 
 def display_translation(original, translated, direction):
     """Display the translation results."""
@@ -99,7 +107,7 @@ def main():
         print_header()
         print_menu()
 
-        choice = get_valid_choice(5)
+        choice = get_valid_choice(6)
 
         if choice == '1':
             text = input("\nEnter English text to translate: ").strip()
@@ -123,6 +131,11 @@ def main():
             print_grammar_rules()
 
         elif choice == '5':
+            clear_screen()
+            print_header()
+            print_special_phrases(translator)
+
+        elif choice == '6':
             clear_screen()
             print_header()
             print("\nFarewell, xel'thor! May the vor'kaan guide your path.")

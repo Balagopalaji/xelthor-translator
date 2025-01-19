@@ -1,29 +1,19 @@
 """Xel'thor language translator implementation."""
-from vocabulary import VocabularyManager
+from xelthor_dictionary import DICTIONARY, get_complete_dictionary, get_special_phrases
 
 class XelthorTranslator:
     """Handles translation between English and Xel'thor languages."""
 
     def __init__(self):
         """Initialize the translator with vocabulary and grammar rules."""
-        vocab_manager = VocabularyManager()
-        self.eng_to_xel = vocab_manager.get_eng_to_xel()
-        self.xel_to_eng = vocab_manager.get_xel_to_eng()
+        self.eng_to_xel = get_complete_dictionary()
+        self.xel_to_eng = {v: k for k, v in self.eng_to_xel.items()}
+        self.special_phrases = get_special_phrases()
 
         # Prefixes for states of existence
-        self.prefixes = {
-            "physical": "xel-",
-            "energy": "vor-",
-            "abstract": "mii-"
-        }
-
+        self.prefixes = DICTIONARY["prefixes"]
         # Tonal indicators (added as suffixes)
-        self.tones = {
-            "present": "",  # neutral tone
-            "past": "-pa",  # descending tone
-            "future": "-zi",  # ascending tone
-            "eternal": "-th"  # harmonic tone
-        }
+        self.tones = DICTIONARY["tones"]
 
     def apply_grammar_rules(self, words, to_xelthor=True):
         """Apply Xel'thor grammar rules (Verb-Object-Subject order)."""
@@ -161,5 +151,5 @@ class XelthorTranslator:
 
     def get_vocabulary(self):
         """Return the current vocabulary as a sorted list of tuples."""
-        vocab_manager = VocabularyManager()
+        vocab_manager = VocabularyManager() #This line may need to be adjusted depending on VocabularyManager's definition and location.
         return vocab_manager.get_sorted_vocabulary()

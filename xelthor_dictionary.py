@@ -1,0 +1,94 @@
+"""Dictionary for the Xel'thor language containing vocabulary and special phrases."""
+
+DICTIONARY = {
+    "vocabulary": {
+        # Basic verbs
+        "travel": "zz'rix",
+        "communicate": "ph'sor",
+        "see": "xa'lor",
+        "think": "mii'sor",
+        "share": "ph'sor",
+        "create": "vor'tix",
+        "learn": "mii'zar",
+        "speak": "ph'lor",
+        "sing": "ph'zar",
+        "dance": "zz'phi",
+        "dream": "mii'thal",
+
+        # Nouns - Physical objects (xel- prefix)
+        "traveler": "xel'thor",
+        "star": "xel'ka",
+        "ship": "xel'vor",
+        "world": "xel'thal",
+        "body": "xel'phi",
+        "mountain": "xel'zor",
+        "tree": "xel'flo",
+        "water": "xel'aqu",
+
+        # Nouns - Energy concepts (vor- prefix)
+        "light": "vor'kaan",
+        "energy": "vor'thi",
+        "power": "vor'zix",
+        "space": "vor'thal",
+        "time": "vor'phi",
+        "wind": "vor'asi",
+        "heat": "vor'kal",
+
+        # Nouns - Abstract concepts (mii- prefix)
+        "wisdom": "mii'path",
+        "knowledge": "mii'path",
+        "truth": "mii'kan",
+        "thought": "mii'lor",
+        "unity": "mii'zol",
+        "dream": "mii'dor",
+        "peace": "mii'pax",
+        "harmony": "mii'har",
+
+        # Connectors and prepositions
+        "through": "vor",
+        "between": "zz",
+        "with": "phi",
+        "in": "ka",
+        "to": "th",
+        "from": "rx",
+        "and": "za",
+        "or": "zo"
+    },
+
+    "prefixes": {
+        "physical": "xel-",
+        "energy": "vor-",
+        "abstract": "mii-"
+    },
+
+    "tones": {
+        "present": "",      # neutral tone
+        "past": "-pa",      # descending tone
+        "future": "-zi",    # ascending tone
+        "eternal": "-th"    # harmonic tone
+    },
+
+    "special_phrases": {
+        "greetings": "ph'zor'ka",        # literally "speak-light"
+        "farewell": "zz'vor'phi",        # literally "travel-through-time"
+        "thank you": "mii'zol'phi",      # literally "unity-with"
+        "welcome": "xel'thor'ka",        # literally "traveler-in"
+        "good luck": "vor'kaan'th'phi"   # literally "light-eternal-with"
+    }
+}
+
+def get_complete_dictionary():
+    """Return the complete English to Xel'thor dictionary."""
+    return DICTIONARY["vocabulary"].copy()
+
+def get_special_phrases():
+    """Return the dictionary of special phrases."""
+    return DICTIONARY["special_phrases"].copy()
+
+def get_prefixes():
+    """Return the dictionary of prefixes."""
+    return DICTIONARY["prefixes"].copy()
+
+def get_tones():
+    """Return the dictionary of tonal markers."""
+    return DICTIONARY["tones"].copy()
