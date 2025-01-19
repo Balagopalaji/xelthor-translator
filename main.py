@@ -14,14 +14,14 @@ def print_header():
 
 def print_menu():
     """Display the main menu options."""
-    print("\n=== Xel'thor Translator ===")
+    print("\nChoose an option:")
     print("1. English to Xel'thor")
     print("2. Xel'thor to English")
     print("3. View vocabulary")
     print("4. View grammar rules")
     print("5. View special phrases")
     print("6. Exit")
-    print("========================")
+    print("-" * 40)
 
 def print_grammar_rules():
     """Display the Xel'thor grammar rules."""
@@ -48,8 +48,6 @@ def print_special_phrases(translator):
 
 def display_translation(original, translated, direction):
     """Display the translation results."""
-    clear_screen()
-    print_header()
     print(f"\n{direction} Translation")
     print("-" * 40)
     print(f"Original text: {original}")
@@ -57,12 +55,10 @@ def display_translation(original, translated, direction):
 
 def display_vocabulary(translator):
     """Display the current vocabulary categorized by type."""
-    clear_screen()
-    print_header()
     print("\nCurrent Vocabulary:")
     print("-" * 40)
 
-    vocabulary = {
+    categories = {
         "Verbs": lambda x: any(x.startswith(p) for p in ["zz'", "ph'", "xa'", "vor'", "mii'"]),
         "Physical Nouns (xel-)": lambda x: x.startswith("xel'"),
         "Energy Nouns (vor-)": lambda x: x.startswith("vor'") and len(x) > 4,
@@ -70,11 +66,9 @@ def display_vocabulary(translator):
         "Connectors": lambda x: len(x) <= 4
     }
 
-    eng_to_xel = translator.eng_to_xel
-
-    for category, condition in vocabulary.items():
+    for category, condition in categories.items():
         print(f"\n{category}:")
-        for eng, xel in sorted(eng_to_xel.items()):
+        for eng, xel in sorted(translator.eng_to_xel.items()):
             if condition(xel):
                 print(f"{eng:15} = {xel}")
 
@@ -126,18 +120,12 @@ def main():
             display_vocabulary(translator)
 
         elif choice == '4':
-            clear_screen()
-            print_header()
             print_grammar_rules()
 
         elif choice == '5':
-            clear_screen()
-            print_header()
             print_special_phrases(translator)
 
         elif choice == '6':
-            clear_screen()
-            print_header()
             print("\nFarewell, xel'thor! May the vor'kaan guide your path.")
             print("\n" + "="*40 + "\n")
             break
