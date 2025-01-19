@@ -1,0 +1,63 @@
+# File: dictionary_manager.py
+import json
+
+class DictionaryManager:
+    def __init__(self, dictionary_file='xelthor_dictionary.py'):
+        self.dictionary_file = dictionary_file
+        
+    def read_dictionary(self):
+        """Read the current dictionary from file."""
+        with open(self.dictionary_file, 'r') as file:
+            content = file.read()
+            # Extract the dictionary part
+            dict_text = content.split('DICTIONARY = ')[1]
+            # Convert to Python dictionary
+            return eval(dict_text)
+    
+    def write_dictionary(self, dictionary):
+        """Write the updated dictionary to file."""
+        with open(self.dictionary_file, 'w') as file:
+            file.write("DICTIONARY = ")
+            # Pretty print the dictionary with proper indentation
+            json_str = json.dumps(dictionary, indent=4)
+            # Convert JSON-style quotes to Python-style
+            python_dict = json_str.replace('"', "'")
+            file.write(python_dict)
+    
+    def add_word(self, english, xelthor, category):
+        """Add a new word to the dictionary."""
+        dictionary = self.read_dictionary()
+        
+        # Add the new word
+        dictionary['vocabulary'][english] = xelthor
+        
+        # Write back to file
+        self.write_dictionary(dictionary)
+        return True
+
+# File: translator.py
+from xelthor_dictionary import DICTIONARY
+from dictionary_manager import DictionaryManager
+
+class XelthorTranslator:
+    def __init__(self):
+        self.dictionary_manager = DictionaryManager()
+        self.reload_dictionary()
+    
+    def reload_dictionary(self):
+        """Reload the dictionary from file."""
+        dictionary = self.dictionary_manager.read_dictionary()
+        self.eng_to_xel = dictionary["vocabulary"]
+        self.xel_to_eng = {v: k for k, v in self.eng_to_xel.items()}
+        self.prefixes = dictionary["prefixes"]
+        self.tones = dictionary["tones"]
+        self.special_phrases = dictionary["special_phrases"]
+    
+    def add_new_word(self, english, xelthor, category):
+        """Add a new word to the dictionary."""
+        success = self.dictionary_manager.add_word(english, xelthor, category)
+        if success:
+            self.reload_dictionary()
+        return success
+
+    # ... (rest of the translator class remains the same)

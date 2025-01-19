@@ -148,8 +148,3 @@ class XelthorTranslator:
             return " ".join(english_words)
         except Exception as e:
             return f"Translation error: {str(e)}"
-
-    def get_vocabulary(self):
-        """Return the current vocabulary as a sorted list of tuples."""
-        vocab_manager = VocabularyManager() #This line may need to be adjusted depending on VocabularyManager's definition and location.
-        return vocab_manager.get_sorted_vocabulary()
