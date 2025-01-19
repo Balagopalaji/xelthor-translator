@@ -18,8 +18,25 @@ def print_menu():
     print("1. English to Xel'thor Translation")
     print("2. Xel'thor to English Translation")
     print("3. View Vocabulary")
-    print("4. Exit")
+    print("4. View Grammar Rules")
+    print("5. Exit")
     print("\n" + "-"*40)
+
+def print_grammar_rules():
+    """Display the Xel'thor grammar rules."""
+    print("\nXel'thor Grammar Rules:")
+    print("1. Sentence Structure: Verb-Object-Subject (VOS)")
+    print("2. Prefixes:")
+    print("   - xel- : physical objects")
+    print("   - vor- : energy concepts")
+    print("   - mii- : abstract concepts")
+    print("3. Tense Markers:")
+    print("   - Present: no marker")
+    print("   - Past: -pa (descending tone)")
+    print("   - Future: -zi (ascending tone)")
+    print("   - Eternal: -th (harmonic tone)")
+    print("\nExample: 'zz'rix-pa xel'thor vor'thal'")
+    print("Means: 'The traveler traveled through space' (past tense)")
 
 def display_translation(original, translated, direction):
     """Display the translation results."""
@@ -31,59 +48,87 @@ def display_translation(original, translated, direction):
     print(f"Translated text: {translated}")
 
 def display_vocabulary(translator):
-    """Display the current vocabulary."""
+    """Display the current vocabulary categorized by type."""
     clear_screen()
     print_header()
     print("\nCurrent Vocabulary:")
     print("-" * 40)
-    
-    vocabulary = translator.get_vocabulary()
-    max_eng_length = max(len(eng) for eng, _ in vocabulary)
-    
-    for eng, xel in vocabulary:
-        print(f"{eng:<{max_eng_length}} = {xel}")
 
-def get_valid_choice():
+    vocabulary = {
+        "Verbs": lambda x: any(x.startswith(p) for p in ["zz'", "ph'", "xa'", "vor'", "mii'"]),
+        "Physical Nouns (xel-)": lambda x: x.startswith("xel'"),
+        "Energy Nouns (vor-)": lambda x: x.startswith("vor'") and len(x) > 4,
+        "Abstract Nouns (mii-)": lambda x: x.startswith("mii'"),
+        "Connectors": lambda x: len(x) <= 4
+    }
+
+    eng_to_xel = translator.eng_to_xel
+
+    for category, condition in vocabulary.items():
+        print(f"\n{category}:")
+        for eng, xel in sorted(eng_to_xel.items()):
+            if condition(xel):
+                print(f"{eng:15} = {xel}")
+
+def get_valid_choice(max_choice):
     """Get and validate user menu choice."""
     while True:
-        choice = input("\nEnter your choice (1-4): ").strip()
-        if choice in ['1', '2', '3', '4']:
+        choice = input(f"\nEnter your choice (1-{max_choice}): ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= max_choice:
             return choice
-        print("Invalid choice. Please enter a number between 1 and 4.")
+        print(f"Invalid choice. Please enter a number between 1 and {max_choice}.")
+
+def get_tense_choice():
+    """Get the desired tense for translation."""
+    print("\nSelect tense:")
+    print("1. Present")
+    print("2. Past")
+    print("3. Future")
+    print("4. Eternal")
+
+    tense_map = {"1": "present", "2": "past", "3": "future", "4": "eternal"}
+    choice = get_valid_choice(4)
+    return tense_map.get(choice, "present")
 
 def main():
     """Main application loop."""
     translator = XelthorTranslator()
-    
+
     while True:
         clear_screen()
         print_header()
         print_menu()
-        
-        choice = get_valid_choice()
-        
+
+        choice = get_valid_choice(5)
+
         if choice == '1':
             text = input("\nEnter English text to translate: ").strip()
             if text:
-                result = translator.translate_to_xelthor(text)
+                tense = get_tense_choice()
+                result = translator.translate_to_xelthor(text, tense)
                 display_translation(text, result, "English to Xel'thor")
-            
+
         elif choice == '2':
             text = input("\nEnter Xel'thor text to translate: ").strip()
             if text:
                 result = translator.translate_to_english(text)
                 display_translation(text, result, "Xel'thor to English")
-            
+
         elif choice == '3':
             display_vocabulary(translator)
-            
+
         elif choice == '4':
+            clear_screen()
+            print_header()
+            print_grammar_rules()
+
+        elif choice == '5':
             clear_screen()
             print_header()
             print("\nFarewell, xel'thor! May the vor'kaan guide your path.")
             print("\n" + "="*40 + "\n")
             break
-        
+
         input("\nPress Enter to continue...")
 
 if __name__ == "__main__":
