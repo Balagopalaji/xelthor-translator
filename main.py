@@ -10,6 +10,8 @@ import time
 def clear_screen():
     """Clear the console screen."""
     os.system('cls' if os.name == 'nt' else 'clear')
+    # Add a small delay to ensure the screen is cleared
+    time.sleep(0.1)
 
 def get_terminal_size():
     """Get the terminal size or default to 80x24."""
@@ -18,6 +20,11 @@ def get_terminal_size():
         return max(60, min(columns, 100))  # Keep width between 60 and 100
     except:
         return 80
+
+def pause_and_continue():
+    """Wait for user input before continuing."""
+    input("\nPress Enter to continue...")
+    time.sleep(0.1)  # Small delay to ensure input is processed
 
 class XelthorInterface:
     def __init__(self):
@@ -31,6 +38,7 @@ class XelthorInterface:
     def set_status(self, message):
         """Set a status message to display at the bottom of the screen."""
         self.status_message = message
+        time.sleep(0.1)  # Small delay to ensure status is displayed
 
     def display_header(self, title):
         """Display a formatted header."""
@@ -46,6 +54,16 @@ class XelthorInterface:
             print(f"Status: {self.status_message}")
         print("Navigation: [Enter] Continue | [0] Back/Exit | [Numbers] Select Option")
         print("-"*self.screen_width)
+
+    def get_user_input(self, prompt):
+        """Get user input with proper buffer handling."""
+        print(prompt, end='', flush=True)
+        try:
+            return input().strip()
+        except EOFError:
+            return ''
+        finally:
+            time.sleep(0.1)  # Ensure input buffer is cleared
 
     def paginate_list(self, items, page_size=10):
         """Display a paginated list of items."""
@@ -74,7 +92,7 @@ class XelthorInterface:
 
             self.display_footer()
 
-            choice = input("\nEnter choice: ").lower()
+            choice = self.get_user_input("\nEnter choice: ").lower()
             if choice in ['n', 'next'] and current_page < total_pages:
                 current_page += 1
             elif choice in ['p', 'prev', 'previous'] and current_page > 1:
@@ -90,7 +108,7 @@ class XelthorInterface:
     def login(self):
         """Handle user login."""
         self.display_header("Login")
-        username = input("Username: ")
+        username = self.get_user_input("Username: ")
         password = getpass.getpass("Password: ")
 
         if self.auth_manager.verify_credentials(username, password):
@@ -132,13 +150,13 @@ class XelthorInterface:
         """Handle translation in either direction."""
         self.display_header("Translation")
         if direction == 'to_xelthor':
-            text = input("Enter English text: ")
+            text = self.get_user_input("Enter English text: ")
             print("\nSelect tense:")
             print("1. Present")
             print("2. Past")
             print("3. Future")
             print("4. Eternal")
-            tense_choice = input("\nEnter tense (1-4): ")
+            tense_choice = self.get_user_input("\nEnter tense (1-4): ")
 
             tense_map = {"1": "present", "2": "past", "3": "future", "4": "eternal"}
             tense = tense_map.get(tense_choice, "present")
@@ -150,7 +168,7 @@ class XelthorInterface:
             self.set_status("") #Clear loading message
             print("Xel'thor translation:")
         else:
-            text = input("Enter Xel'thor text: ")
+            text = self.get_user_input("Enter Xel'thor text: ")
             self.display_header("Translation Result")
             self.set_status("Translating...") #Simulate loading
             time.sleep(1) #Simulate a delay
@@ -162,6 +180,7 @@ class XelthorInterface:
         print(result)
         print("-" * self.screen_width)
         self.display_footer()
+        pause_and_continue()
 
     def view_vocabulary(self):
         """Display the current vocabulary."""
@@ -184,7 +203,7 @@ class XelthorInterface:
                 print("(No words in this category)")
 
             self.display_footer()
-            input("\nPress Enter to continue...")
+            pause_and_continue()
 
     def handle_dictionary_management(self):
         """Handle dictionary management operations."""
@@ -204,7 +223,7 @@ class XelthorInterface:
                 print(f"{idx}. {item}")
             print("\n" + "="*self.screen_width)
 
-            choice = input("\nEnter your choice (1-6): ")
+            choice = self.get_user_input("\nEnter your choice (1-6): ")
 
             if choice == "1":
                 self.add_new_word()
@@ -221,7 +240,7 @@ class XelthorInterface:
             else:
                 print("\nInvalid choice. Please try again.")
                 self.display_footer()
-                input("\nPress Enter to continue...")
+                pause_and_continue()
 
     def handle_backup_management(self):
         """Handle backup management operations."""
@@ -239,7 +258,7 @@ class XelthorInterface:
                 print(f"{idx}. {item}")
             print("\n" + "="*self.screen_width)
 
-            choice = input("\nEnter your choice (1-4): ")
+            choice = self.get_user_input("\nEnter your choice (1-4): ")
 
             if choice == "1":
                 self.set_status("Creating backup...")
@@ -262,7 +281,7 @@ class XelthorInterface:
                 break
 
             self.display_footer()
-            input("\nPress Enter to continue...")
+            pause_and_continue()
 
     def handle_backup_restore(self):
         """Handle the backup restoration process."""
@@ -278,7 +297,7 @@ class XelthorInterface:
         print("\n" + "="*self.screen_width)
 
         try:
-            idx = int(input("\nEnter backup number to restore (or 0 to cancel): ")) - 1
+            idx = int(self.get_user_input("\nEnter backup number to restore (or 0 to cancel): ")) - 1
             if idx == -1:
                 return
             if 0 <= idx < len(backups):
@@ -296,19 +315,20 @@ class XelthorInterface:
         except ValueError:
             print("\nInvalid input.")
         self.display_footer()
+        pause_and_continue()
 
     def add_new_word(self):
         """Add a new word to the dictionary."""
         self.display_header("Add New Word")
 
-        english = input("Enter English word (or 'cancel' to abort): ").lower().strip()
+        english = self.get_user_input("Enter English word (or 'cancel' to abort): ").lower().strip()
         if english == 'cancel':
             return
 
         if english in self.translator.eng_to_xel:
             print(f"\nWord '{english}' already exists with translation: {self.translator.eng_to_xel[english]}")
             self.display_footer()
-            input("\nPress Enter to continue...")
+            pause_and_continue()
             return
 
         self.display_header("Word Category")
@@ -323,14 +343,14 @@ class XelthorInterface:
             print(f"{idx}. {category}")
         print("\n" + "="*self.screen_width)
 
-        category = input("\nEnter category (1-5 or 'cancel'): ")
+        category = self.get_user_input("\nEnter category (1-5 or 'cancel'): ")
         if category == 'cancel':
             return
 
         if category not in ["1", "2", "3", "4", "5"]:
             print("\nInvalid category.")
             self.display_footer()
-            input("\nPress Enter to continue...")
+            pause_and_continue()
             return
 
         self.display_header("Xel'thor Translation")
@@ -356,7 +376,7 @@ class XelthorInterface:
         print("\n" + "="*self.screen_width)
 
         while True:
-            xelthor = input("\nEnter Xel'thor translation (or 'cancel' to abort): ").lower().strip()
+            xelthor = self.get_user_input("\nEnter Xel'thor translation (or 'cancel' to abort): ").lower().strip()
 
             if xelthor == 'cancel':
                 return
@@ -378,7 +398,7 @@ class XelthorInterface:
             self.set_status("Failed to add word")
             print("Failed to add word. Please try again.")
         self.display_footer()
-        input("\nPress Enter to continue...")
+        pause_and_continue()
 
     def edit_word(self):
         """Edit an existing word in the dictionary."""
@@ -391,7 +411,7 @@ class XelthorInterface:
             print(f"{idx:3d}. {eng:20} = {xel}")
 
         print("\n" + "="*self.screen_width)
-        english = input("\nEnter English word to edit (or 'cancel' to abort): ").lower().strip()
+        english = self.get_user_input("\nEnter English word to edit (or 'cancel' to abort): ").lower().strip()
 
         if english == 'cancel':
             return
@@ -399,13 +419,13 @@ class XelthorInterface:
         if english not in self.translator.eng_to_xel:
             print(f"\nWord '{english}' not found in dictionary.")
             self.display_footer()
-            input("\nPress Enter to continue...")
+            pause_and_continue()
             return
 
         current_xelthor = self.translator.eng_to_xel[english]
         print(f"\nCurrent translation: {current_xelthor}")
 
-        new_xelthor = input("\nEnter new Xel'thor translation (or 'cancel' to abort): ").lower().strip()
+        new_xelthor = self.get_user_input("\nEnter new Xel'thor translation (or 'cancel' to abort): ").lower().strip()
         if new_xelthor == 'cancel':
             return
 
@@ -419,7 +439,7 @@ class XelthorInterface:
             print("\nFailed to update word. Please try again.")
 
         self.display_footer()
-        input("\nPress Enter to continue...")
+        pause_and_continue()
 
     def get_similar_word(self, word, words, threshold=0.6):
         """Find a similar word in the dictionary using string similarity."""
@@ -467,7 +487,7 @@ class XelthorInterface:
                 print(f"{idx:3d}. {eng:20} = {xel}")
 
             print("\n" + "="*self.screen_width)
-            english = input("\nEnter English word to remove (or '0' to go back): ").lower().strip()
+            english = self.get_user_input("\nEnter English word to remove (or '0' to go back): ").lower().strip()
 
             if english == '0':
                 return
@@ -476,26 +496,26 @@ class XelthorInterface:
                 similar_word = self.get_similar_word(english, self.translator.eng_to_xel.keys())
                 if similar_word:
                     print(f"\nWord '{english}' not found. Did you mean '{similar_word}'?")
-                    choice = input("Enter 'y' to remove this word, or any other key to try again: ").lower()
+                    choice = self.get_user_input("Enter 'y' to remove this word, or any other key to try again: ").lower()
                     if choice == 'y':
                         english = similar_word
                     else:
                         self.display_footer()
-                        input("\nPress Enter to try again...")
+                        pause_and_continue()
                         continue
                 else:
                     self.set_status("Word not found")
                     print(f"\nWord '{english}' not found in dictionary.")
                     self.display_footer()
-                    input("\nPress Enter to try again...")
+                    pause_and_continue()
                     continue
 
-            confirm = input(f"\nAre you sure you want to remove '{english}' = '{self.translator.eng_to_xel[english]}'? (yes/no): ").lower()
+            confirm = self.get_user_input(f"\nAre you sure you want to remove '{english}' = '{self.translator.eng_to_xel[english]}'? (yes/no): ").lower()
             if confirm != 'yes':
                 self.set_status("Operation cancelled")
                 print("\nOperation cancelled.")
                 self.display_footer()
-                input("\nPress Enter to try again...")
+                pause_and_continue()
                 continue
 
             self.set_status("Removing word...")
@@ -508,7 +528,7 @@ class XelthorInterface:
                 print("\nFailed to remove word. Please try again.")
 
             self.display_footer()
-            choice = input("\nPress Enter to remove another word, or '0' to go back: ")
+            choice = self.get_user_input("\nPress Enter to remove another word, or '0' to go back: ")
             if choice == '0':
                 break
 
@@ -516,17 +536,17 @@ class XelthorInterface:
         """Add a new special phrase to the dictionary."""
         self.display_header("Add Special Phrase")
 
-        english = input("Enter English phrase (or 'cancel' to abort): ").lower().strip()
+        english = self.get_user_input("Enter English phrase (or 'cancel' to abort): ").lower().strip()
         if english == 'cancel':
             return
 
         if english in self.translator.special_phrases:
             print(f"\nPhrase '{english}' already exists with translation: {self.translator.special_phrases[english]}")
             self.display_footer()
-            input("\nPress Enter to continue...")
+            pause_and_continue()
             return
 
-        xelthor = input("\nEnter Xel'thor translation (or 'cancel' to abort): ").strip()
+        xelthor = self.get_user_input("\nEnter Xel'thor translation (or 'cancel' to abort): ").strip()
         if xelthor == 'cancel':
             return
 
@@ -540,7 +560,7 @@ class XelthorInterface:
             print("\nFailed to add special phrase. Please try again.")
 
         self.display_footer()
-        input("\nPress Enter to continue...")
+        pause_and_continue()
 
     def remove_special_phrase(self):
         """Remove a special phrase from the dictionary."""
@@ -555,11 +575,11 @@ class XelthorInterface:
         if not phrases:
             print("\nNo special phrases found in dictionary.")
             self.display_footer()
-            input("\nPress Enter to continue...")
+            pause_and_continue()
             return
 
         print("\n" + "="*self.screen_width)
-        english = input("\nEnter English phrase to remove (or 'cancel' to abort): ").lower().strip()
+        english = self.get_user_input("\nEnter English phrase to remove (or 'cancel' to abort): ").lower().strip()
 
         if english == 'cancel':
             return
@@ -567,14 +587,14 @@ class XelthorInterface:
         if english not in self.translator.special_phrases:
             print(f"\nPhrase '{english}' not found in dictionary.")
             self.display_footer()
-            input("\nPress Enter to continue...")
+            pause_and_continue()
             return
 
-        confirm = input(f"\nAre you sure you want to remove '{english}' = '{self.translator.special_phrases[english]}'? (yes/no): ").lower()
+        confirm = self.get_user_input(f"\nAre you sure you want to remove '{english}' = '{self.translator.special_phrases[english]}'? (yes/no): ").lower()
         if confirm != 'yes':
             print("\nOperation cancelled.")
             self.display_footer()
-            input("\nPress Enter to continue...")
+            pause_and_continue()
             return
 
         self.set_status("Removing special phrase...")
@@ -587,14 +607,14 @@ class XelthorInterface:
             print("\nFailed to remove special phrase. Please try again.")
 
         self.display_footer()
-        input("\nPress Enter to continue...")
+        pause_and_continue()
 
     def run(self):
         """Main application loop."""
         while True:
             try:
                 self.print_menu()
-                choice = input("\nEnter your choice (1-8 or 0 to exit): ")
+                choice = self.get_user_input("\nEnter your choice (1-8 or 0 to exit): ")
 
                 if choice == "0" or choice == "8":
                     self.display_header("Farewell")
@@ -618,22 +638,23 @@ class XelthorInterface:
                     print("   - Past: -pa (descending tone)")
                     print("   - Future: -zi (ascending tone)")
                     print("   - Eternal: -th (harmonic tone)")
+                    pause_and_continue()
                 elif choice == "5":
                     self.display_header("Special Phrases")
-                    for eng, xel in self.translator.special_phrases.items():
-                        print(f"{eng:20} = {xel}")
+                    phrases = self.translator.special_phrases
+                    if phrases:
+                        for eng, xel in phrases.items():
+                            print(f"{eng:20} = {xel}")
+                    else:
+                        print("No special phrases defined yet.")
+                    pause_and_continue()
                 elif choice == "6":
                     self.handle_dictionary_management()
                 elif choice == "7":
                     self.handle_backup_management()
                 else:
                     print("\nInvalid choice. Please enter a number between 1 and 8.")
-
-                if choice not in ["6", "7", "0", "8"]:  # Skip for menu options that handle their own continue prompt
-                    self.display_footer()
-                    input("\nPress Enter to continue or 0 to exit: ")
-                    if input == "0":
-                        break
+                    pause_and_continue()
 
             except KeyboardInterrupt:
                 self.display_header("Exit")
@@ -641,9 +662,8 @@ class XelthorInterface:
                 break
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
-                self.display_footer()
-                input("\nPress Enter to continue or 0 to exit: ")
-                if input == "0":
+                pause_and_continue()
+                if self.get_user_input("Enter 0 to exit or any key to continue: ") == "0":
                     break
 
 if __name__ == "__main__":
