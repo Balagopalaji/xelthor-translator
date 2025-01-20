@@ -3,7 +3,7 @@
 DICTIONARY = {
     'vocabulary': {
     'dance': "zz'phi",
-    'god': "vor'shiba",
+    'god': "vor'shnoo",
     'love': "mii'lou",
     'freedom': "mii'indzz'je"
 },

@@ -421,46 +421,96 @@ class XelthorInterface:
         self.display_footer()
         input("\nPress Enter to continue...")
 
+    def get_similar_word(self, word, words, threshold=0.6):
+        """Find a similar word in the dictionary using string similarity."""
+        def levenshtein_distance(s1, s2):
+            if len(s1) < len(s2):
+                return levenshtein_distance(s2, s1)
+            if len(s2) == 0:
+                return len(s1)
+            previous_row = range(len(s2) + 1)
+            for i, c1 in enumerate(s1):
+                current_row = [i + 1]
+                for j, c2 in enumerate(s2):
+                    insertions = previous_row[j + 1] + 1
+                    deletions = current_row[j] + 1
+                    substitutions = previous_row[j] + (c1 != c2)
+                    current_row.append(min(insertions, deletions, substitutions))
+                previous_row = current_row
+            return previous_row[-1]
+
+        def similarity(s1, s2):
+            distance = levenshtein_distance(s1, s2)
+            max_len = max(len(s1), len(s2))
+            return 1 - (distance / max_len)
+
+        best_match = None
+        best_similarity = 0
+
+        for candidate in words:
+            sim = similarity(word, candidate)
+            if sim > threshold and sim > best_similarity:
+                best_similarity = sim
+                best_match = candidate
+
+        return best_match
+
     def remove_word(self):
         """Remove a word from the dictionary."""
-        self.display_header("Remove Word")
+        while True:
+            self.display_header("Remove Word")
 
-        # Display current vocabulary for reference
-        print("Current vocabulary:")
-        words = sorted(self.translator.eng_to_xel.items())
-        for idx, (eng, xel) in enumerate(words, 1):
-            print(f"{idx:3d}. {eng:20} = {xel}")
+            # Display current vocabulary for reference
+            print("Current vocabulary:")
+            words = sorted(self.translator.eng_to_xel.items())
+            for idx, (eng, xel) in enumerate(words, 1):
+                print(f"{idx:3d}. {eng:20} = {xel}")
 
-        print("\n" + "="*self.screen_width)
-        english = input("\nEnter English word to remove (or 'cancel' to abort): ").lower().strip()
+            print("\n" + "="*self.screen_width)
+            english = input("\nEnter English word to remove (or '0' to go back): ").lower().strip()
 
-        if english == 'cancel':
-            return
+            if english == '0':
+                return
 
-        if english not in self.translator.eng_to_xel:
-            print(f"\nWord '{english}' not found in dictionary.")
+            if english not in self.translator.eng_to_xel:
+                similar_word = self.get_similar_word(english, self.translator.eng_to_xel.keys())
+                if similar_word:
+                    print(f"\nWord '{english}' not found. Did you mean '{similar_word}'?")
+                    choice = input("Enter 'y' to remove this word, or any other key to try again: ").lower()
+                    if choice == 'y':
+                        english = similar_word
+                    else:
+                        self.display_footer()
+                        input("\nPress Enter to try again...")
+                        continue
+                else:
+                    self.set_status("Word not found")
+                    print(f"\nWord '{english}' not found in dictionary.")
+                    self.display_footer()
+                    input("\nPress Enter to try again...")
+                    continue
+
+            confirm = input(f"\nAre you sure you want to remove '{english}' = '{self.translator.eng_to_xel[english]}'? (yes/no): ").lower()
+            if confirm != 'yes':
+                self.set_status("Operation cancelled")
+                print("\nOperation cancelled.")
+                self.display_footer()
+                input("\nPress Enter to try again...")
+                continue
+
+            self.set_status("Removing word...")
+            if self.dictionary_manager.remove_word(english):
+                self.translator.reload_dictionary()
+                self.set_status("Word removed successfully")
+                print(f"\nSuccessfully removed: {english}")
+            else:
+                self.set_status("Failed to remove word")
+                print("\nFailed to remove word. Please try again.")
+
             self.display_footer()
-            input("\nPress Enter to continue...")
-            return
-
-        confirm = input(f"\nAre you sure you want to remove '{english}' = '{self.translator.eng_to_xel[english]}'? (yes/no): ").lower()
-        if confirm != 'yes':
-            print("\nOperation cancelled.")
-            self.display_footer()
-            input("\nPress Enter to continue...")
-            return
-
-        self.set_status("Removing word...")
-        if self.dictionary_manager.remove_word(english):
-            self.translator.reload_dictionary()
-            self.set_status("Word removed successfully")
-            print(f"\nSuccessfully removed: {english}")
-        else:
-            self.set_status("Failed to remove word")
-            print("\nFailed to remove word. Please try again.")
-
-        self.display_footer()
-        input("\nPress Enter to continue...")
+            choice = input("\nPress Enter to remove another word, or '0' to go back: ")
+            if choice == '0':
+                break
 
     def add_special_phrase(self):
         """Add a new special phrase to the dictionary."""

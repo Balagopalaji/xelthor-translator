@@ -5,7 +5,8 @@ DICTIONARY = {
     'dance': "zz'phi",
     'god': "vor'shiba",
     'love': "mii'lou",
-    'freedom': "mii'indzz'je"
+    'freedom': "mii'indzz'je",
+    'illusion': "vor'knill"
 },
     'prefixes': {
     'physical': 'xel-',
