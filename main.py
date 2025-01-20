@@ -90,7 +90,7 @@ class XelthorInterface:
             print("1-9 - Jump to item")
             print("n   - Next page")
             print("p   - Previous page")
-            print("0   - Back/Exit")
+            print("0   - Return to menu")
 
             self.display_footer()
 
@@ -175,19 +175,17 @@ class XelthorInterface:
                 "Remove word",
                 "Add special phrase",
                 "Remove special phrase",
-                "Batch Manage Words",
-                "Batch Manage Special Phrases",
+                "Batch import/edit words",
+                "Batch import/edit special phrases",
                 "Back to main menu"
             ]
             for idx, item in enumerate(menu_items, 1):
                 print(f"{idx}. {item}")
             print("\n" + "="*self.screen_width)
 
-            choice = self.get_user_input("\nEnter your choice (1-8): ").lower()
+            choice = self.get_user_input("\nEnter your choice (1-8): ")
 
-            if choice == "0":
-                return
-            elif choice == "1":
+            if choice == "1":
                 self.add_new_word()
             elif choice == "2":
                 self.edit_word()
@@ -203,6 +201,10 @@ class XelthorInterface:
                 self.batch_manage_special_phrases()
             elif choice == "8":
                 break
+            else:
+                print("\nInvalid choice. Please try again.")
+                self.display_footer()
+                pause_and_continue()
 
     def batch_manage_words(self):
         """Handle batch import/export of words."""
@@ -210,7 +212,7 @@ class XelthorInterface:
             self.display_header("Batch Word Management")
             print("1. Import words from CSV")
             print("2. Export current words to CSV")
-            print("0. Back to dictionary management")
+            print("3. Back to dictionary management")
             print("\nCSV Format for import: english,xelthor,category")
             print("\nCategories:")
             print("1 = Verbs (must start with: zz', ph', xa', vor', or mii')")
@@ -226,11 +228,9 @@ class XelthorInterface:
             print("and,je,5                # Connector")
             print("\n" + "="*self.screen_width)
 
-            choice = self.get_user_input("\nEnter your choice (0-2): ").lower()
+            choice = self.get_user_input("\nEnter your choice (1-3): ")
 
-            if choice == "0":  # Global return to main menu
-                return
-            elif choice == "1":
+            if choice == "1":
                 self.display_header("Import Words")
                 print("Enter CSV data (one word per line, empty line to finish):")
                 print("Format: english,xelthor,category")
@@ -253,12 +253,6 @@ class XelthorInterface:
                     line = self.get_user_input("")
                     if not line:
                         break
-                    elif line.lower() in ["0", "b"]:  # Allow navigation during input
-                        lines = []  # Clear any input
-                        if line == "0":
-                            return
-                        else:
-                            break
                     lines.append(line)
 
                 if lines:
@@ -294,15 +288,13 @@ class XelthorInterface:
             self.display_header("Batch Special Phrase Management")
             print("1. Import special phrases from CSV")
             print("2. Export current special phrases to CSV")
-            print("0. Back to dictionary management")
+            print("3. Back to dictionary management")
             print("\nCSV Format for import: english,xelthor")
             print("\n" + "="*self.screen_width)
 
-            choice = self.get_user_input("\nEnter your choice (0-2): ").lower()
+            choice = self.get_user_input("\nEnter your choice (1-3): ")
 
-            if choice == "0":  # Add global return to main menu
-                return
-            elif choice == "1":
+            if choice == "1":
                 self.display_header("Import Special Phrases")
                 print("Enter CSV data (one phrase per line, empty line to finish):")
                 print("Format: english,xelthor")
@@ -358,11 +350,9 @@ class XelthorInterface:
                 print(f"{idx}. {item}")
             print("\n" + "="*self.screen_width)
 
-            choice = self.get_user_input("\nEnter your choice (1-4 or 0 to go back): ").lower()
+            choice = self.get_user_input("\nEnter your choice (1-4): ")
 
-            if choice == "0":  # Add global return to main menu
-                return
-            elif choice == "1":
+            if choice == "1":
                 self.set_status("Creating backup...")
                 backup_file = self.dictionary_manager.create_backup()
                 if backup_file:
@@ -414,9 +404,8 @@ class XelthorInterface:
             print("2. Past")
             print("3. Future")
             print("4. Eternal")
-            tense_choice = self.get_user_input("\nEnter tense (1-4 or 0 to go back): ")
-            if tense_choice == "0":
-                return
+            tense_choice = self.get_user_input("\nEnter tense (1-4): ")
+
             tense_map = {"1": "present", "2": "past", "3": "future", "4": "eternal"}
             tense = tense_map.get(tense_choice, "present")
 
@@ -745,59 +734,57 @@ class XelthorInterface:
 
     def remove_special_phrase(self):
         """Remove a special phrase from the dictionary."""
-        while True:
-            self.display_header("Remove Special Phrase")
+        self.display_header("Remove Special Phrase")
 
-            # Display current special phrases for reference
-            print("Current special phrases:")
-            phrases = sorted(self.translator.special_phrases.items())
-            for idx, (eng, xel) in enumerate(phrases, 1):
-                print(f"{idx:3d}. {eng:20} = {xel}")
+        # Display current special phrases for reference
+        print("Current special phrases:")
+        phrases = sorted(self.translator.special_phrases.items())
+        for idx, (eng, xel) in enumerate(phrases, 1):
+            print(f"{idx:3d}. {eng:20} = {xel}")
 
-            if not phrases:
-                print("\nNo special phrases found in dictionary.")
-                self.display_footer()
-                pause_and_continue()
-                return
-
-            print("\n" + "="*self.screen_width)
-            english = self.get_user_input("\nEnter English phrase to remove (or '0' to go back): ").lower().strip()
-
-            if english == '0':
-                return
-
-            if english not in self.translator.special_phrases:
-                print(f"\nPhrase '{english}' not found in dictionary.")
-                self.display_footer()
-                pause_and_continue()
-                continue
-
-            confirm = self.get_user_input(f"\nAre you sure you want to remove '{english}' = '{self.translator.special_phrases[english]}'? (yes/no): ").lower()
-            if confirm != 'yes':
-                print("\nOperation cancelled.")
-                self.display_footer()
-                pause_and_continue()
-                continue
-
-            self.set_status("Removing special phrase...")
-            if self.dictionary_manager.remove_special_phrase(english):
-                self.translator.reload_dictionary()
-                self.set_status("Special phrase removed successfully")
-                print(f"\nSuccessfully removed: {english}")
-            else:
-                self.set_status("Failed to remove special phrase")
-                print("\nFailed to remove special phrase. Please try again.")
-
+        if not phrases:
+            print("\nNo special phrases found in dictionary.")
             self.display_footer()
             pause_and_continue()
             return
+
+        print("\n" + "="*self.screen_width)
+        english = self.get_user_input("\nEnter English phrase to remove (or 'cancel' to abort): ").lower().strip()
+
+        if english == 'cancel':
+            return
+
+        if english not in self.translator.special_phrases:
+            print(f"\nPhrase '{english}' not found in dictionary.")
+            self.display_footer()
+            pause_and_continue()
+            return
+
+        confirm = self.get_user_input(f"\nAre you sure you want to remove '{english}' = '{self.translator.special_phrases[english]}'? (yes/no): ").lower()
+        if confirm != 'yes':
+            print("\nOperation cancelled.")
+            self.display_footer()
+            pause_and_continue()
+            return
+
+        self.set_status("Removing special phrase...")
+        if self.dictionary_manager.remove_special_phrase(english):
+            self.translator.reload_dictionary()
+            self.set_status("Special phrase removed successfully")
+            print(f"\nSuccessfully removed: {english}")
+        else:
+            self.set_status("Failed to remove special phrase")
+            print("\nFailed to remove special phrase. Please try again.")
+
+        self.display_footer()
+        pause_and_continue()
 
     def run(self):
         """Main application loop."""
         while True:
             try:
                 self.print_menu()
-                choice = self.get_user_input("\nEnter your choice (1-9 or 0 to exit): ").lower()
+                choice = self.get_user_input("\nEnter your choice (1-9 or 0 to exit): ")
 
                 if choice == "0":
                     self.display_header("Farewell")
@@ -816,16 +803,17 @@ class XelthorInterface:
                     print("   - xel- : physical objects")
                     print("   - vor- : energy concepts")
                     print("   - mii- : abstract concepts")
-                    print("3. Tenses:")
-                    print("   - Present: no suffix")
-                    print("   - Past: -pa")
-                    print("   - Future: -zi")
-                    print("   - Eternal: -th")
+                    print("3. Tense Markers:")
+                    print("   - Present: no marker")
+                    print("   - Past: -pa (descending tone)")
+                    print("   - Future: -zi (ascending tone)")
+                    print("   - Eternal: -th (harmonic tone)")
                     pause_and_continue()
                 elif choice == "5":
                     self.display_header("Special Phrases")
-                    if self.translator.special_phrases:
-                        for eng, xel in sorted(self.translator.special_phrases.items()):
+                    phrases = self.translator.special_phrases
+                    if phrases:
+                        for eng, xel in phrases.items():
                             print(f"{eng:20} = {xel}")
                     else:
                         print("No special phrases defined yet.")
@@ -835,18 +823,27 @@ class XelthorInterface:
                 elif choice == "7":
                     self.handle_backup_management()
                 elif choice == "8":
-                    self.logout()
+                    if self.current_user:
+                        self.logout()
+                    else:
+                        self.login()
                 elif choice == "9":
                     self.display_header("Farewell")
                     print("Farewell, star wanderer!")
                     break
                 else:
-                    print("\nInvalid choice. Please enter a number between 1 and 9, or 0 to exit.")
+                    print("\nInvalid choice. Please enter a number between 1 and 9.")
                     pause_and_continue()
+
+            except KeyboardInterrupt:
+                self.display_header("Exit")
+                print("Program terminated. Farewell!")
+                break
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
-                self.set_status("Error occurred")
                 pause_and_continue()
+                if self.get_user_input("Enter 0 to exit or any key to continue: ") == "0":
+                    break
 
 if __name__ == "__main__":
     interface = XelthorInterface()
