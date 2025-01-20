@@ -1,26 +1,37 @@
 """Xel'thor language translator implementation."""
-from xelthor_dictionary import DICTIONARY, get_complete_dictionary, get_special_phrases
+from xelthor_dictionary import DICTIONARY
+from dictionary_manager import DictionaryManager
 
 class XelthorTranslator:
     """Handles translation between English and Xel'thor languages."""
 
     def __init__(self):
         """Initialize the translator with vocabulary and grammar rules."""
-        self.eng_to_xel = get_complete_dictionary()
-        self.xel_to_eng = {v: k for k, v in self.eng_to_xel.items()}
-        self.special_phrases = get_special_phrases()
+        self.dictionary_manager = DictionaryManager()
+        self.reload_dictionary()
 
-        # Prefixes for states of existence
-        self.prefixes = DICTIONARY["prefixes"]
-        # Tonal indicators (added as suffixes)
-        self.tones = DICTIONARY["tones"]
+    def reload_dictionary(self):
+        """Reload the dictionary from file."""
+        dictionary = self.dictionary_manager.read_dictionary()
+        self.eng_to_xel = dictionary["vocabulary"]
+        self.xel_to_eng = {v: k for k, v in self.eng_to_xel.items()}
+        self.prefixes = dictionary["prefixes"]
+        self.tones = dictionary["tones"]
+        self.special_phrases = dictionary.get("special_phrases", {})
+
+    def add_new_word(self, english, xelthor, category):
+        """Add a new word to the dictionary."""
+        success = self.dictionary_manager.add_word(english, xelthor, category)
+        if success:
+            self.reload_dictionary()
+        return success
 
     def apply_grammar_rules(self, words, to_xelthor=True):
         """Apply Xel'thor grammar rules (Verb-Object-Subject order)."""
         if len(words) < 3:
             return words
 
-        # Identify the verb (basic implementation)
+        # Identify the verb
         verb_index = None
         for i, word in enumerate(words):
             if to_xelthor:
@@ -58,16 +69,7 @@ class XelthorTranslator:
         return xelthor_word
 
     def translate_to_xelthor(self, english_text, tense="present"):
-        """
-        Translate English text to Xel'thor with tense support.
-
-        Args:
-            english_text (str): Text to translate
-            tense (str): Desired tense (present, past, future, eternal)
-
-        Returns:
-            str: Translated text with tense markers
-        """
+        """Translate English text to Xel'thor."""
         if not english_text:
             return ""
 
@@ -98,15 +100,7 @@ class XelthorTranslator:
             return f"Translation error: {str(e)}"
 
     def translate_to_english(self, xelthor_text):
-        """
-        Translate Xel'thor text to English with tense interpretation.
-
-        Args:
-            xelthor_text (str): Text to translate
-
-        Returns:
-            str: Translated text with proper English tense
-        """
+        """Translate Xel'thor text to English."""
         if not xelthor_text:
             return ""
 
