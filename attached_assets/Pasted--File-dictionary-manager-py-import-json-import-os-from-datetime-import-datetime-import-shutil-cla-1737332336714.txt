@@ -1,0 +1,92 @@
+# File: dictionary_manager.py
+import json
+import os
+from datetime import datetime
+import shutil
+
+class DictionaryManager:
+    def __init__(self, dictionary_file='xelthor_dictionary.py', backup_dir='dictionary_backups'):
+        self.dictionary_file = dictionary_file
+        self.backup_dir = backup_dir
+        self.ensure_backup_dir()
+    
+    def ensure_backup_dir(self):
+        """Create backup directory if it doesn't exist."""
+        if not os.path.exists(self.backup_dir):
+            os.makedirs(self.backup_dir)
+    
+    def create_backup(self):
+        """Create a backup of the current dictionary."""
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = f"{self.backup_dir}/xelthor_dictionary_{timestamp}.py"
+        shutil.copy2(self.dictionary_file, backup_file)
+        return backup_file
+    
+    def restore_backup(self, backup_file):
+        """Restore dictionary from a backup file."""
+        if os.path.exists(backup_file):
+            shutil.copy2(backup_file, self.dictionary_file)
+            return True
+        return False
+    
+    def list_backups(self):
+        """List all available backups."""
+        return sorted([f for f in os.listdir(self.backup_dir) 
+                      if f.startswith('xelthor_dictionary_')])
+    
+    def read_dictionary(self):
+        """Read the current dictionary from file."""
+        with open(self.dictionary_file, 'r') as file:
+            content = file.read()
+            dict_text = content.split('DICTIONARY = ')[1]
+            return eval(dict_text)
+    
+    def write_dictionary(self, dictionary):
+        """Write the updated dictionary to file."""
+        self.create_backup()  # Create backup before writing
+        with open(self.dictionary_file, 'w') as file:
+            file.write("DICTIONARY = ")
+            json_str = json.dumps(dictionary, indent=4)
+            python_dict = json_str.replace('"', "'")
+            file.write(python_dict)
+    
+    def add_word(self, english, xelthor, category):
+        """Add a new word to the dictionary."""
+        dictionary = self.read_dictionary()
+        dictionary['vocabulary'][english] = xelthor
+        self.write_dictionary(dictionary)
+        return True
+    
+    def edit_word(self, english, new_xelthor):
+        """Edit an existing word."""
+        dictionary = self.read_dictionary()
+        if english in dictionary['vocabulary']:
+            dictionary['vocabulary'][english] = new_xelthor
+            self.write_dictionary(dictionary)
+            return True
+        return False
+    
+    def remove_word(self, english):
+        """Remove a word from the dictionary."""
+        dictionary = self.read_dictionary()
+        if english in dictionary['vocabulary']:
+            del dictionary['vocabulary'][english]
+            self.write_dictionary(dictionary)
+            return True
+        return False
+    
+    def add_special_phrase(self, english, xelthor):
+        """Add a new special phrase."""
+        dictionary = self.read_dictionary()
+        dictionary['special_phrases'][english] = xelthor
+        self.write_dictionary(dictionary)
+        return True
+    
+    def remove_special_phrase(self, english):
+        """Remove a special phrase."""
+        dictionary = self.read_dictionary()
+        if english in dictionary['special_phrases']:
+            del dictionary['special_phrases'][english]
+            self.write_dictionary(dictionary)
+            return True
+        return False

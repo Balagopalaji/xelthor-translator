@@ -1,0 +1,153 @@
+# File: main.py
+from translator import XelthorTranslator
+from auth_manager import AuthManager
+from dictionary_manager import DictionaryManager
+import getpass
+
+class XelthorInterface:
+    def __init__(self):
+        self.translator = XelthorTranslator()
+        self.auth_manager = AuthManager()
+        self.dictionary_manager = DictionaryManager()
+        self.current_user = None
+    
+    def login(self):
+        """Handle user login."""
+        print("\n=== Login ===")
+        username = input("Username: ")
+        password = getpass.getpass("Password: ")
+        
+        if self.auth_manager.verify_credentials(username, password):
+            self.current_user = username
+            return True
+        return False
+    
+    def require_auth(func):
+        """Decorator to require authentication for certain functions."""
+        def wrapper(self, *args, **kwargs):
+            if self.current_user is None:
+                print("\nAuthorization required. Please login first.")
+                if not self.login():
+                    print("Authentication failed.")
+                    return
+            return func(self, *args, **kwargs)
+        return wrapper
+    
+    def print_menu(self):
+        print("\n=== Xel'thor Translator ===")
+        print("1. English to Xel'thor")
+        print("2. Xel'thor to English")
+        print("3. View vocabulary")
+        print("4. View grammar rules")
+        print("5. View special phrases")
+        print("6. Dictionary Management (Auth Required)")
+        print("7. Backup Management (Auth Required)")
+        print("8. Exit")
+        print("========================")
+    
+    def print_dictionary_menu(self):
+        print("\n=== Dictionary Management ===")
+        print("1. Add new word")
+        print("2. Edit existing word")
+        print("3. Remove word")
+        print("4. Add special phrase")
+        print("5. Remove special phrase")
+        print("6. Back to main menu")
+    
+    def print_backup_menu(self):
+        print("\n=== Backup Management ===")
+        print("1. Create backup")
+        print("2. List backups")
+        print("3. Restore from backup")
+        print("4. Back to main menu")
+    
+    @require_auth
+    def handle_dictionary_management(self):
+        while True:
+            self.print_dictionary_menu()
+            choice = input("\nEnter your choice: ")
+            
+            if choice == "1":
+                add_new_word(self.translator)
+            elif choice == "2":
+                self.edit_word()
+            elif choice == "3":
+                self.remove_word()
+            elif choice == "4":
+                self.add_special_phrase()
+            elif choice == "5":
+                self.remove_special_phrase()
+            elif choice == "6":
+                break
+    
+    @require_auth
+    def handle_backup_management(self):
+        while True:
+            self.print_backup_menu()
+            choice = input("\nEnter your choice: ")
+            
+            if choice == "1":
+                backup_file = self.dictionary_manager.create_backup()
+                print(f"\nBackup created: {backup_file}")
+            elif choice == "2":
+                backups = self.dictionary_manager.list_backups()
+                print("\nAvailable backups:")
+                for i, backup in enumerate(backups, 1):
+                    print(f"{i}. {backup}")
+            elif choice == "3":
+                backups = self.dictionary_manager.list_backups()
+                if not backups:
+                    print("\nNo backups available.")
+                    continue
+                    
+                print("\nAvailable backups:")
+                for i, backup in enumerate(backups, 1):
+                    print(f"{i}. {backup}")
+                    
+                try:
+                    idx = int(input("\nEnter backup number to restore: ")) - 1
+                    if 0 <= idx < len(backups):
+                        backup_file = os.path.join(self.dictionary_manager.backup_dir, backups[idx])
+                        if self.dictionary_manager.restore_backup(backup_file):
+                            print("\nBackup restored successfully.")
+                            self.translator.reload_dictionary()
+                        else:
+                            print("\nError restoring backup.")
+                    else:
+                        print("\nInvalid backup number.")
+                except ValueError:
+                    print("\nInvalid input.")
+            elif choice == "4":
+                break
+
+    def run(self):
+        while True:
+            self.print_menu()
+            choice = input("\nEnter your choice (1-8): ")
+            
+            if choice == "1":
+                # Existing translation code...
+                pass
+            elif choice == "2":
+                # Existing translation code...
+                pass
+            elif choice == "3":
+                # Existing vocabulary display code...
+                pass
+            elif choice == "4":
+                # Existing grammar rules display code...
+                pass
+            elif choice == "5":
+                # Existing special phrases display code...
+                pass
+            elif choice == "6":
+                self.handle_dictionary_management()
+            elif choice == "7":
+                self.handle_backup_management()
+            elif choice == "8":
+                print("\nFarewell, star wanderer!")
+                break
+
+if __name__ == "__main__":
+    interface = XelthorInterface()
+    interface.run()
