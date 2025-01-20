@@ -5,7 +5,7 @@ import shutil
 from translator import XelthorTranslator
 from auth_manager import AuthManager
 from dictionary_manager import DictionaryManager
-import time # Added for loading indicator simulation
+import time
 
 def clear_screen():
     """Clear the console screen."""
@@ -44,7 +44,7 @@ class XelthorInterface:
         print("\n" + "-"*self.screen_width)
         if self.status_message:
             print(f"Status: {self.status_message}")
-        print("Navigation: [Enter] Continue | [←/→] Navigate | [Ctrl+C] Exit")
+        print("Navigation: [Enter] Continue | [0] Back/Exit | [Numbers] Select Option")
         print("-"*self.screen_width)
 
     def paginate_list(self, items, page_size=10):
@@ -67,19 +67,25 @@ class XelthorInterface:
                     print(f"{idx:3d}. {item}")
 
             print("\nNavigation:")
-            print("n/→ - Next page")
-            print("p/← - Previous page")
-            print("q   - Return to menu")
+            print("1-9 - Jump to item")
+            print("n   - Next page")
+            print("p   - Previous page")
+            print("0   - Return to menu")
 
             self.display_footer()
 
             choice = input("\nEnter choice: ").lower()
-            if choice in ['n', 'right'] and current_page < total_pages:
+            if choice in ['n', 'next'] and current_page < total_pages:
                 current_page += 1
-            elif choice in ['p', 'left'] and current_page > 1:
+            elif choice in ['p', 'prev', 'previous'] and current_page > 1:
                 current_page -= 1
-            elif choice == 'q':
+            elif choice == '0':
                 break
+            elif choice.isdigit():
+                idx = int(choice) - 1
+                if 0 <= idx < len(items):
+                    # Handle item selection if needed
+                    pass
 
     def login(self):
         """Handle user login."""
@@ -371,9 +377,13 @@ class XelthorInterface:
         while True:
             try:
                 self.print_menu()
-                choice = input("\nEnter your choice (1-8): ")
+                choice = input("\nEnter your choice (1-8 or 0 to exit): ")
 
-                if choice == "1":
+                if choice == "0" or choice == "8":
+                    self.display_header("Farewell")
+                    print("Farewell, star wanderer!")
+                    break
+                elif choice == "1":
                     self.handle_translation('to_xelthor')
                 elif choice == "2":
                     self.handle_translation('from_xelthor')
@@ -399,25 +409,25 @@ class XelthorInterface:
                     self.handle_dictionary_management()
                 elif choice == "7":
                     self.handle_backup_management()
-                elif choice == "8":
-                    self.display_header("Farewell")
-                    print("Farewell, star wanderer!")
-                    break
                 else:
-                    print("\nInvalid choice. Please try again.")
+                    print("\nInvalid choice. Please enter a number between 1 and 8.")
 
-                if choice not in ["6", "7", "8"]:  # Skip for menu options that handle their own continue prompt
+                if choice not in ["6", "7", "0", "8"]:  # Skip for menu options that handle their own continue prompt
                     self.display_footer()
-                    input("\nPress Enter to continue...")
+                    input("\nPress Enter to continue or 0 to exit: ")
+                    if input == "0":
+                        break
 
             except KeyboardInterrupt:
                 self.display_header("Exit")
-                print("Program terminated by user. Farewell!")
+                print("Program terminated. Farewell!")
                 break
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
                 self.display_footer()
-                input("\nPress Enter to continue...")
+                input("\nPress Enter to continue or 0 to exit: ")
+                if input == "0":
+                    break
 
 if __name__ == "__main__":
     interface = XelthorInterface()

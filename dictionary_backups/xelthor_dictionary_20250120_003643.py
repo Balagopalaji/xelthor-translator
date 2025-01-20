@@ -3,8 +3,7 @@
 DICTIONARY = {
     'vocabulary': {
     'dance': "zz'phi",
-    'god': "vor'shnoo",
-    'love': "mii'lou"
+    'god': "vor'shnoo"
 },
     'prefixes': {
     'physical': 'xel-',
