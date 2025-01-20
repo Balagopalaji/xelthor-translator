@@ -24,7 +24,7 @@ def get_terminal_size():
 def pause_and_continue():
     """Wait for user input before continuing."""
     input("\nPress Enter to continue...")
-    time.sleep(0.1)  # Small delay to ensure input is processed
+    time.sleep(0.1)  # Ensure input buffer is cleared
 
 class XelthorInterface:
     def __init__(self):
@@ -52,6 +52,8 @@ class XelthorInterface:
         print("\n" + "-"*self.screen_width)
         if self.status_message:
             print(f"Status: {self.status_message}")
+        if self.current_user:
+            print(f"Logged in as: {self.current_user}")
         print("Navigation: [Enter] Continue | [0] Back/Exit | [Numbers] Select Option")
         print("-"*self.screen_width)
 
@@ -109,13 +111,247 @@ class XelthorInterface:
         """Handle user login."""
         self.display_header("Login")
         username = self.get_user_input("Username: ")
+        if username.lower() == 'cancel':
+            return False
         password = getpass.getpass("Password: ")
 
         if self.auth_manager.verify_credentials(username, password):
             self.current_user = username
             self.set_status(f"Logged in as {username}")
             return True
+
+        self.set_status("Authentication failed")
+        print("\nInvalid username or password.")
+        pause_and_continue()
         return False
+
+    def logout(self):
+        """Handle user logout."""
+        if self.current_user:
+            self.current_user = None
+            self.set_status("Logged out successfully")
+            print("\nYou have been logged out.")
+            pause_and_continue()
+
+    @staticmethod
+    def require_auth(func):
+        """Decorator to require authentication for certain functions."""
+        from functools import wraps
+
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            attempts = 3
+            while attempts > 0 and self.current_user is None:
+                self.display_header("Authorization Required")
+                print("This feature requires authentication.")
+                print(f"You have {attempts} login attempts remaining.")
+                print("\nEnter 'cancel' as username to go back to main menu.")
+
+                if not self.login():
+                    attempts -= 1
+                    if attempts > 0:
+                        print(f"\nAuthentication failed. {attempts} attempts remaining.")
+                    else:
+                        print("\nToo many failed attempts. Access denied.")
+                        pause_and_continue()
+                        return None
+                    continue
+                break
+
+            if self.current_user is None:
+                return None
+
+            return func(self, *args, **kwargs)
+        return wrapper
+
+    @require_auth
+    def handle_dictionary_management(self):
+        """Handle dictionary management operations."""
+        while True:
+            self.display_header("Dictionary Management")
+            menu_items = [
+                "Add new word",
+                "Edit existing word",
+                "Remove word",
+                "Add special phrase",
+                "Remove special phrase",
+                "Batch import/edit words",
+                "Batch import/edit special phrases",
+                "Back to main menu"
+            ]
+            for idx, item in enumerate(menu_items, 1):
+                print(f"{idx}. {item}")
+            print("\n" + "="*self.screen_width)
+
+            choice = self.get_user_input("\nEnter your choice (1-8): ")
+
+            if choice == "1":
+                self.add_new_word()
+            elif choice == "2":
+                self.edit_word()
+            elif choice == "3":
+                self.remove_word()
+            elif choice == "4":
+                self.add_special_phrase()
+            elif choice == "5":
+                self.remove_special_phrase()
+            elif choice == "6":
+                self.batch_manage_words()
+            elif choice == "7":
+                self.batch_manage_special_phrases()
+            elif choice == "8":
+                break
+            else:
+                print("\nInvalid choice. Please try again.")
+                self.display_footer()
+                pause_and_continue()
+
+    def batch_manage_words(self):
+        """Handle batch import/export of words."""
+        while True:
+            self.display_header("Batch Word Management")
+            print("1. Import words from CSV")
+            print("2. Export current words to CSV")
+            print("3. Back to dictionary management")
+            print("\nCSV Format for import: english,xelthor,category")
+            print("Categories: 1=Verb, 2=Physical, 3=Energy, 4=Abstract, 5=Connector")
+            print("\n" + "="*self.screen_width)
+
+            choice = self.get_user_input("\nEnter your choice (1-3): ")
+
+            if choice == "1":
+                self.display_header("Import Words")
+                print("Enter CSV data (one word per line, empty line to finish):")
+                print("Format: english,xelthor,category")
+                print("Example: dance,zz'phi,1")
+                print("\n" + "="*self.screen_width + "\n")
+
+                lines = []
+                while True:
+                    line = self.get_user_input("")
+                    if not line:
+                        break
+                    lines.append(line)
+
+                if lines:
+                    csv_content = "\n".join(lines)
+                    success_count, errors = self.dictionary_manager.batch_add_words(csv_content)
+
+                    self.display_header("Import Results")
+                    print(f"Successfully added {success_count} words")
+                    if errors:
+                        print("\nErrors:")
+                        for error in errors:
+                            print(f"- {error}")
+
+                    if success_count > 0:
+                        self.translator.reload_dictionary()
+
+                pause_and_continue()
+
+            elif choice == "2":
+                self.display_header("Export Words")
+                csv_content = self.dictionary_manager.export_words_to_csv()
+                print("Current words in CSV format:")
+                print("\n" + "="*self.screen_width + "\n")
+                print(csv_content)
+                pause_and_continue()
+
+            elif choice == "3":
+                break
+
+    def batch_manage_special_phrases(self):
+        """Handle batch import/export of special phrases."""
+        while True:
+            self.display_header("Batch Special Phrase Management")
+            print("1. Import special phrases from CSV")
+            print("2. Export current special phrases to CSV")
+            print("3. Back to dictionary management")
+            print("\nCSV Format for import: english,xelthor")
+            print("\n" + "="*self.screen_width)
+
+            choice = self.get_user_input("\nEnter your choice (1-3): ")
+
+            if choice == "1":
+                self.display_header("Import Special Phrases")
+                print("Enter CSV data (one phrase per line, empty line to finish):")
+                print("Format: english,xelthor")
+                print("Example: may the force be with you,vor'thala mii'keth")
+                print("\n" + "="*self.screen_width + "\n")
+
+                lines = []
+                while True:
+                    line = self.get_user_input("")
+                    if not line:
+                        break
+                    lines.append(line)
+
+                if lines:
+                    csv_content = "\n".join(lines)
+                    success_count, errors = self.dictionary_manager.batch_add_special_phrases(csv_content)
+
+                    self.display_header("Import Results")
+                    print(f"Successfully added {success_count} special phrases")
+                    if errors:
+                        print("\nErrors:")
+                        for error in errors:
+                            print(f"- {error}")
+
+                    if success_count > 0:
+                        self.translator.reload_dictionary()
+
+                pause_and_continue()
+
+            elif choice == "2":
+                self.display_header("Export Special Phrases")
+                csv_content = self.dictionary_manager.export_special_phrases_to_csv()
+                print("Current special phrases in CSV format:")
+                print("\n" + "="*self.screen_width + "\n")
+                print(csv_content)
+                pause_and_continue()
+
+            elif choice == "3":
+                break
+
+    @require_auth
+    def handle_backup_management(self):
+        """Handle backup management operations."""
+        while True:
+            self.display_header("Backup Management")
+            menu_items = [
+                "Create backup",
+                "List backups",
+                "Restore from backup",
+                "Back to main menu"
+            ]
+            for idx, item in enumerate(menu_items, 1):
+                print(f"{idx}. {item}")
+            print("\n" + "="*self.screen_width)
+
+            choice = self.get_user_input("\nEnter your choice (1-4): ")
+
+            if choice == "1":
+                self.set_status("Creating backup...")
+                backup_file = self.dictionary_manager.create_backup()
+                if backup_file:
+                    self.set_status("Backup created successfully")
+                    print(f"\nBackup created: {backup_file}")
+                else:
+                    self.set_status("Failed to create backup")
+                    print("\nFailed to create backup.")
+            elif choice == "2":
+                backups = self.dictionary_manager.list_backups()
+                if backups:
+                    self.paginate_list(backups)
+                else:
+                    print("\nNo backups available.")
+            elif choice == "3":
+                self.handle_backup_restore()
+            elif choice == "4":
+                break
+
+            self.display_footer()
+            pause_and_continue()
 
     def print_menu(self):
         """Display the main menu options."""
@@ -128,23 +364,13 @@ class XelthorInterface:
             "View special phrases",
             "Dictionary Management (Auth Required)",
             "Backup Management (Auth Required)",
+            "Logout",
             "Exit"
         ]
         for idx, item in enumerate(menu_items, 1):
             print(f"{idx:2d}. {item}")
 
         self.display_footer()
-
-    def require_auth(self, func):
-        """Decorator to require authentication for certain functions."""
-        def wrapper(*args, **kwargs):
-            if self.current_user is None:
-                self.display_header("Authorization Required")
-                if not self.login():
-                    print("\nAuthentication failed.")
-                    return
-            return func(*args, **kwargs)
-        return wrapper
 
     def handle_translation(self, direction='to_xelthor'):
         """Handle translation in either direction."""
@@ -201,84 +427,6 @@ class XelthorInterface:
                 self.paginate_list(words)
             else:
                 print("(No words in this category)")
-
-            self.display_footer()
-            pause_and_continue()
-
-    def handle_dictionary_management(self):
-        """Handle dictionary management operations."""
-        self.require_auth(lambda: None)()
-
-        while True:
-            self.display_header("Dictionary Management")
-            menu_items = [
-                "Add new word",
-                "Edit existing word",
-                "Remove word",
-                "Add special phrase",
-                "Remove special phrase",
-                "Back to main menu"
-            ]
-            for idx, item in enumerate(menu_items, 1):
-                print(f"{idx}. {item}")
-            print("\n" + "="*self.screen_width)
-
-            choice = self.get_user_input("\nEnter your choice (1-6): ")
-
-            if choice == "1":
-                self.add_new_word()
-            elif choice == "2":
-                self.edit_word()
-            elif choice == "3":
-                self.remove_word()
-            elif choice == "4":
-                self.add_special_phrase()
-            elif choice == "5":
-                self.remove_special_phrase()
-            elif choice == "6":
-                break
-            else:
-                print("\nInvalid choice. Please try again.")
-                self.display_footer()
-                pause_and_continue()
-
-    def handle_backup_management(self):
-        """Handle backup management operations."""
-        self.require_auth(lambda: None)()
-
-        while True:
-            self.display_header("Backup Management")
-            menu_items = [
-                "Create backup",
-                "List backups",
-                "Restore from backup",
-                "Back to main menu"
-            ]
-            for idx, item in enumerate(menu_items, 1):
-                print(f"{idx}. {item}")
-            print("\n" + "="*self.screen_width)
-
-            choice = self.get_user_input("\nEnter your choice (1-4): ")
-
-            if choice == "1":
-                self.set_status("Creating backup...")
-                backup_file = self.dictionary_manager.create_backup()
-                if backup_file:
-                    self.set_status("Backup created successfully")
-                    print(f"\nBackup created: {backup_file}")
-                else:
-                    self.set_status("Failed to create backup")
-                    print("\nFailed to create backup.")
-            elif choice == "2":
-                backups = self.dictionary_manager.list_backups()
-                if backups:
-                    self.paginate_list(backups)
-                else:
-                    print("\nNo backups available.")
-            elif choice == "3":
-                self.handle_backup_restore()
-            elif choice == "4":
-                break
 
             self.display_footer()
             pause_and_continue()
@@ -614,9 +762,9 @@ class XelthorInterface:
         while True:
             try:
                 self.print_menu()
-                choice = self.get_user_input("\nEnter your choice (1-8 or 0 to exit): ")
+                choice = self.get_user_input("\nEnter your choice (1-9 or 0 to exit): ")
 
-                if choice == "0" or choice == "8":
+                if choice == "0":
                     self.display_header("Farewell")
                     print("Farewell, star wanderer!")
                     break
@@ -652,8 +800,17 @@ class XelthorInterface:
                     self.handle_dictionary_management()
                 elif choice == "7":
                     self.handle_backup_management()
+                elif choice == "8":
+                    if self.current_user:
+                        self.logout()
+                    else:
+                        self.login()
+                elif choice == "9":
+                    self.display_header("Farewell")
+                    print("Farewell, star wanderer!")
+                    break
                 else:
-                    print("\nInvalid choice. Please enter a number between 1 and 8.")
+                    print("\nInvalid choice. Please enter a number between 1 and 9.")
                     pause_and_continue()
 
             except KeyboardInterrupt:

@@ -2,7 +2,9 @@
 import ast
 import os
 import shutil
+import csv
 from datetime import datetime
+from io import StringIO
 
 class DictionaryManager:
     def __init__(self, dictionary_file='xelthor_dictionary.py', backup_dir='dictionary_backups'):
@@ -140,3 +142,138 @@ class DictionaryManager:
         except Exception as e:
             print(f"Error removing special phrase: {str(e)}")
             return False
+
+    def batch_add_words(self, csv_content):
+        """Add multiple words from CSV content.
+        Expected format: english,xelthor,category
+        Category should be 1-5 corresponding to the word types
+        Returns tuple: (success_count, error_list)
+        """
+        try:
+            dictionary = self.read_dictionary()
+            success_count = 0
+            errors = []
+
+            csv_file = StringIO(csv_content)
+            reader = csv.reader(csv_file)
+
+            prefix_map = {
+                "1": ["zz'", "ph'", "xa'", "vor'", "mii'"],  # Verbs
+                "2": ["xel'"],  # Physical nouns
+                "3": ["vor'"],  # Energy concepts
+                "4": ["mii'"],  # Abstract concepts
+                "5": []  # Connectors
+            }
+
+            for row_num, row in enumerate(reader, 1):
+                try:
+                    if len(row) != 3:
+                        errors.append(f"Row {row_num}: Invalid format. Expected 3 columns (english,xelthor,category)")
+                        continue
+
+                    english, xelthor, category = [x.strip().lower() for x in row]
+
+                    if not category.isdigit() or category not in prefix_map:
+                        errors.append(f"Row {row_num}: Invalid category '{category}'. Must be 1-5")
+                        continue
+
+                    if english in dictionary['vocabulary']:
+                        errors.append(f"Row {row_num}: Word '{english}' already exists")
+                        continue
+
+                    # Validate prefix based on category
+                    if category == "5":  # Connectors
+                        if len(xelthor) > 4:
+                            errors.append(f"Row {row_num}: Connector '{xelthor}' too long (max 4 characters)")
+                            continue
+                    else:
+                        if not any(xelthor.startswith(prefix) for prefix in prefix_map[category]):
+                            expected_prefixes = ", ".join(prefix_map[category])
+                            errors.append(f"Row {row_num}: Word '{xelthor}' must start with {expected_prefixes}")
+                            continue
+
+                    dictionary['vocabulary'][english] = xelthor
+                    success_count += 1
+
+                except Exception as e:
+                    errors.append(f"Row {row_num}: Error processing row: {str(e)}")
+
+            if success_count > 0:
+                self.write_dictionary(dictionary)
+
+            return success_count, errors
+
+        except Exception as e:
+            return 0, [f"Error processing CSV: {str(e)}"]
+
+    def batch_add_special_phrases(self, csv_content):
+        """Add multiple special phrases from CSV content.
+        Expected format: english,xelthor
+        Returns tuple: (success_count, error_list)
+        """
+        try:
+            dictionary = self.read_dictionary()
+            success_count = 0
+            errors = []
+
+            csv_file = StringIO(csv_content)
+            reader = csv.reader(csv_file)
+
+            for row_num, row in enumerate(reader, 1):
+                try:
+                    if len(row) != 2:
+                        errors.append(f"Row {row_num}: Invalid format. Expected 2 columns (english,xelthor)")
+                        continue
+
+                    english, xelthor = [x.strip().lower() for x in row]
+
+                    if english in dictionary['special_phrases']:
+                        errors.append(f"Row {row_num}: Phrase '{english}' already exists")
+                        continue
+
+                    dictionary['special_phrases'][english] = xelthor
+                    success_count += 1
+
+                except Exception as e:
+                    errors.append(f"Row {row_num}: Error processing row: {str(e)}")
+
+            if success_count > 0:
+                self.write_dictionary(dictionary)
+
+            return success_count, errors
+
+        except Exception as e:
+            return 0, [f"Error processing CSV: {str(e)}"]
+
+    def export_words_to_csv(self):
+        """Export all words to CSV format string."""
+        dictionary = self.read_dictionary()
+        output = StringIO()
+        writer = csv.writer(output)
+
+        # Determine categories based on prefixes
+        for english, xelthor in sorted(dictionary['vocabulary'].items()):
+            category = "5"  # Default to connector
+            if any(xelthor.startswith(p) for p in ["zz'", "ph'", "xa'", "vor'", "mii'"]):
+                category = "1"  # Verb
+            elif xelthor.startswith("xel'"):
+                category = "2"  # Physical noun
+            elif xelthor.startswith("vor'"):
+                category = "3"  # Energy concept
+            elif xelthor.startswith("mii'"):
+                category = "4"  # Abstract concept
+
+            writer.writerow([english, xelthor, category])
+
+        return output.getvalue()
+
+    def export_special_phrases_to_csv(self):
+        """Export all special phrases to CSV format string."""
+        dictionary = self.read_dictionary()
+        output = StringIO()
+        writer = csv.writer(output)
+
+        for english, xelthor in sorted(dictionary['special_phrases'].items()):
+            writer.writerow([english, xelthor])
+
+        return output.getvalue()
