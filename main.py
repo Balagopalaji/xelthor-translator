@@ -67,11 +67,12 @@ class XelthorInterface:
             tense = tense_map.get(tense_choice, "present")
 
             result = self.translator.translate_to_xelthor(text, tense)
+            print("\nXel'thor translation:")
         else:
             text = input("\nEnter Xel'thor text: ")
             result = self.translator.translate_to_english(text)
+            print("\nEnglish translation:")
 
-        print(f"\n{'English' if direction == 'from_xelthor' else 'Xel\'thor'} translation:")
         print(result)
 
     def view_vocabulary(self):
