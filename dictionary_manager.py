@@ -165,6 +165,14 @@ class DictionaryManager:
                 "5": []  # Connectors
             }
 
+            default_prefix = {
+                "1": "zz'",  # Default verb prefix
+                "2": "xel'", # Default physical prefix
+                "3": "vor'", # Default energy prefix
+                "4": "mii'", # Default abstract prefix
+                "5": ""      # No prefix for connectors
+            }
+
             for row_num, row in enumerate(reader, 1):
                 try:
                     if len(row) != 3:
@@ -181,16 +189,19 @@ class DictionaryManager:
                         errors.append(f"Row {row_num}: Word '{english}' already exists")
                         continue
 
-                    # Validate prefix based on category
+                    # Handle prefixes automatically
                     if category == "5":  # Connectors
                         if len(xelthor) > 4:
                             errors.append(f"Row {row_num}: Connector '{xelthor}' too long (max 4 characters)")
                             continue
                     else:
-                        if not any(xelthor.startswith(prefix) for prefix in prefix_map[category]):
-                            expected_prefixes = ", ".join(prefix_map[category])
-                            errors.append(f"Row {row_num}: Word '{xelthor}' must start with {expected_prefixes}")
-                            continue
+                        # Check if word already has a valid prefix
+                        has_valid_prefix = any(xelthor.startswith(prefix) for prefix in prefix_map[category])
+
+                        if not has_valid_prefix:
+                            # Add the default prefix for this category
+                            xelthor = default_prefix[category] + xelthor
+                            print(f"Row {row_num}: Added prefix {default_prefix[category]} to '{english}' -> '{xelthor}'")
 
                     dictionary['vocabulary'][english] = xelthor
                     success_count += 1
