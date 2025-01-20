@@ -1,5 +1,11 @@
 {
     "users": {
-        "admin": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9"
+        "admin": {
+            "username": "admin",
+            "password": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+            "salt": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+            "role": "admin",
+            "created_at": "2025-01-20T00:00:00"
+        }
     }
 }

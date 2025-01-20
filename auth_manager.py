@@ -47,21 +47,43 @@ class AuthManager:
     def verify_credentials(self, username, password):
         """Verify user credentials."""
         try:
+            if not os.path.exists(self.auth_file):
+                return False, None
+
             with open(self.auth_file, 'r') as f:
                 auth_data = json.load(f)
 
-            if username in auth_data["users"]:
-                user = auth_data["users"][username]
-                hashed = self._hash_password(password, user["salt"])
-                if hashed == user["password"]:
-                    # Create session
+            if username not in auth_data.get("users", {}):
+                return False, None
+
+            user = auth_data["users"][username]
+
+            # For the default admin account with just password hash
+            if isinstance(user, str):
+                if user == hashlib.sha256(password.encode()).hexdigest():
+                    # Create session for legacy format
                     session_token = secrets.token_hex(32)
                     self.sessions[session_token] = {
                         "username": username,
-                        "role": user["role"],
+                        "role": "admin",
                         "expires": (datetime.now() + timedelta(hours=24)).isoformat()
                     }
                     return True, session_token
+                return False, None
+
+            # For new format with salt
+            stored_hash = user.get("password")
+            salt = user.get("salt", "")
+
+            if stored_hash == self._hash_password(password, salt):
+                session_token = secrets.token_hex(32)
+                self.sessions[session_token] = {
+                    "username": username,
+                    "role": user.get("role", "user"),
+                    "expires": (datetime.now() + timedelta(hours=24)).isoformat()
+                }
+                return True, session_token
+
             return False, None
         except Exception as e:
             print(f"Authentication error: {str(e)}")
@@ -69,12 +91,16 @@ class AuthManager:
 
     def verify_session(self, session_token):
         """Verify if a session is valid."""
-        if session_token in self.sessions:
-            session = self.sessions[session_token]
-            expires = datetime.fromisoformat(session["expires"])
-            if datetime.now() < expires:
-                return True, session
-        return False, None
+        try:
+            if session_token in self.sessions:
+                session = self.sessions[session_token]
+                expires = datetime.fromisoformat(session["expires"])
+                if datetime.now() < expires:
+                    return True, session
+            return False, None
+        except Exception as e:
+            print(f"Session verification error: {str(e)}")
+            return False, None
 
     def invalidate_session(self, session_token):
         """Invalidate a session."""
@@ -86,7 +112,7 @@ class AuthManager:
     def add_user(self, admin_session_token, new_username, new_password, role="user"):
         """Add a new user (requires admin session)."""
         valid, session = self.verify_session(admin_session_token)
-        if not valid or session["role"] != "admin":
+        if not valid or session.get("role") != "admin":
             return False, "Unauthorized access"
 
         try:
@@ -121,7 +147,7 @@ class AuthManager:
     def remove_user(self, admin_session_token, username):
         """Remove a user (requires admin session)."""
         valid, session = self.verify_session(admin_session_token)
-        if not valid or session["role"] != "admin":
+        if not valid or session.get("role") != "admin":
             return False, "Unauthorized access"
 
         if username == "admin":
@@ -166,13 +192,14 @@ class AuthManager:
             user = auth_data["users"][username]
 
             # Verify old password
-            if self._hash_password(old_password, user["salt"]) != user["password"]:
+            salt = user.get("salt", "")
+            if self._hash_password(old_password, salt) != user["password"]:
                 return False, "Invalid old password"
 
             # Update password
-            salt = self._generate_salt()
-            user["password"] = self._hash_password(new_password, salt)
-            user["salt"] = salt
+            new_salt = self._generate_salt()
+            user["password"] = self._hash_password(new_password, new_salt)
+            user["salt"] = new_salt
 
             with open(self.auth_file, 'w') as f:
                 json.dump(auth_data, f, indent=4)

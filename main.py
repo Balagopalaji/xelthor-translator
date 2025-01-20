@@ -2,6 +2,7 @@
 import os
 import getpass
 import shutil
+import json #Added import for json library
 from translator import XelthorTranslator
 from auth_manager import AuthManager
 from dictionary_manager import DictionaryManager
@@ -23,8 +24,11 @@ def get_terminal_size():
 
 def pause_and_continue():
     """Wait for user input before continuing."""
-    input("\nPress Enter to continue...")
-    time.sleep(0.1)  # Ensure input buffer is cleared
+    try:
+        input("\nPress Enter to continue...")
+        time.sleep(0.1)  # Ensure input buffer is cleared
+    except (EOFError, KeyboardInterrupt):
+        print("\nOperation cancelled.")
 
 class XelthorInterface:
     def __init__(self):
@@ -63,7 +67,7 @@ class XelthorInterface:
         print(prompt, end='', flush=True)
         try:
             return input().strip()
-        except EOFError:
+        except (EOFError, KeyboardInterrupt):
             return ''
         finally:
             time.sleep(0.1)  # Ensure input buffer is cleared
@@ -837,21 +841,17 @@ class XelthorInterface:
                     self.handle_dictionary_management()
                 elif choice == "7":
                     self.handle_backup_management()
-                elif choice == "8":  # User Management                    if self.session_token:
-                        valid, session = self.auth_manager.verify_session(self.session_token)
-                        if valid and session["role"] == "admin":
-                            self.handle_user_management()
-                        else:
-                            print("\nThis feature requires admin privileges.")
-                            pause_and_continue()
+                elif choice == "8":  # User Management
+                    if self.session_token and self.current_user == "admin":
+                        self.handle_user_management()
                     else:
-                        print("\nThis feature requires admin privileges.")
+                        print("\nAccess denied. Admin privileges required.")
                         pause_and_continue()
                 elif choice == "9":  # Change Password
-                    if self.current_user:
+                    if self.session_token:
                         self.change_password()
                     else:
-                        print("\nYou must be logged in to change password.")
+                        print("\nPlease log in first.")
                         pause_and_continue()
                 elif choice == "10":  # Login/Logout
                     if self.current_user:
@@ -863,9 +863,13 @@ class XelthorInterface:
                     print("Farewell, star wanderer!")
                     break
                 else:
-                    print("\nInvalid choice. Please enter a number between 1 and 11.")
+                    print("\nInvalid choice. Please try again.")
                     pause_and_continue()
-            except Exception as e:
+
+            except (Exception, KeyboardInterrupt) as e:
+                if isinstance(e, KeyboardInterrupt):
+                    print("\nProgram terminated by user.")
+                    break
                 print(f"\nAn error occurred: {str(e)}")
                 pause_and_continue()
 
@@ -873,234 +877,98 @@ class XelthorInterface:
         """Handle user management operations."""
         while True:
             self.display_header("User Management")
-            print("1. Add new user")
-            print("2. Remove user")
-            print("3. Change password")
-            print("4. Back to main menu")
+            menu_items = [
+                "Add new user",
+                "Remove user",
+                "List users",
+                "Back to main menu"
+            ]
+            for idx, item in enumerate(menu_items, 1):
+                print(f"{idx}. {item}")
             print("\n" + "="*self.screen_width)
 
             choice = self.get_user_input("\nEnter your choice (1-4): ")
 
             if choice == "1":
-                self.add_new_user()
+                self.display_header("Add New User")
+                username = self.get_user_input("Enter username: ").lower()
+                if username == "cancel":
+                    continue
+
+                password = getpass.getpass("Enter password: ")
+                role = self.get_user_input("Enter role (admin/user): ").lower()
+                if role not in ["admin", "user"]:
+                    role = "user"
+
+                success, msg = self.auth_manager.add_user(self.session_token, username, password, role)
+                if success:
+                    self.set_status("User added successfully")
+                    print(f"\nUser '{username}' added successfully.")
+                else:
+                    self.set_status("Failed to add user")
+                    print(f"\nFailed to add user: {msg}")
+
             elif choice == "2":
-                self.remove_user()
+                self.display_header("Remove User")
+                username = self.get_user_input("Enter username to remove: ").lower()
+                if username == "cancel":
+                    continue
+
+                success, msg = self.auth_manager.remove_user(self.session_token, username)
+                if success:
+                    self.set_status("User removed successfully")
+                    print(f"\nUser '{username}' removed successfully.")
+                else:
+                    self.set_status("Failed to remove user")
+                    print(f"\nFailed to remove user: {msg}")
+
             elif choice == "3":
-                self.change_password()
+                self.display_header("User List")
+                with open(self.auth_manager.auth_file, 'r') as f:
+                    auth_data = json.load(f)
+                users = auth_data.get("users", {})
+                if users:
+                    print("\nUsername | Role | Created At")
+                    print("-" * self.screen_width)
+                    for username, user in users.items():
+                        if isinstance(user, dict):
+                            role = user.get("role", "user")
+                            created_at = user.get("created_at", "N/A")
+                            print(f"{username:8} | {role:4} | {created_at}")
+                        else:
+                            print(f"{username:8} | admin | N/A")
+                else:
+                    print("\nNo users found.")
+
             elif choice == "4":
                 break
-            else:
-                print("\nInvalid choice. Please try again.")
-                pause_and_continue()
 
-    def add_new_user(self):
-        """Add a new user to the system."""
-        self.display_header("Add New User")
-
-        new_username = self.get_user_input("Enter new username: ")
-        if new_username.lower() == 'cancel':
-            return
-
-        new_password = getpass.getpass("Enter password: ")
-        confirm_password = getpass.getpass("Confirm password: ")
-
-        if new_password != confirm_password:
-            print("\nPasswords do not match.")
+            self.display_footer()
             pause_and_continue()
-            return
-
-        is_admin = self.get_user_input("Make user an admin? (yes/no): ").lower() == 'yes'
-        role = "admin" if is_admin else "user"
-
-        success, message = self.auth_manager.add_user(
-            self.session_token, new_username, new_password, role)
-
-        if success:
-            self.set_status("User added successfully")
-            print(f"\n{message}")
-        else:
-            self.set_status("Failed to add user")
-            print(f"\nError: {message}")
-
-        pause_and_continue()
-
-    def remove_user(self):
-        """Remove a user from the system."""
-        self.display_header("Remove User")
-
-        username = self.get_user_input("Enter username to remove: ")
-        if username.lower() == 'cancel':
-            return
-
-        if username == self.current_user:
-            print("\nCannot remove your own account.")
-            pause_and_continue()
-            return
-
-        confirm = self.get_user_input(f"Are you sure you want to remove user '{username}'? (yes/no): ").lower()
-        if confirm != 'yes':
-            print("\nOperation cancelled.")
-            pause_and_continue()
-            return
-
-        success, message = self.auth_manager.remove_user(self.session_token, username)
-
-        if success:
-            self.set_status("User removed successfully")
-            print(f"\n{message}")
-        else:
-            self.set_status("Failed to remove user")
-            print(f"\nError: {message}")
-
-        pause_and_continue()
 
     def change_password(self):
-        """Change user's password."""
+        """Change user password."""
         self.display_header("Change Password")
-
         old_password = getpass.getpass("Enter current password: ")
         new_password = getpass.getpass("Enter new password: ")
         confirm_password = getpass.getpass("Confirm new password: ")
 
         if new_password != confirm_password:
+            self.set_status("Passwords do not match")
             print("\nNew passwords do not match.")
             pause_and_continue()
             return
 
-        success, message = self.auth_manager.change_password(
-            self.session_token, old_password, new_password)
-
+        success, msg = self.auth_manager.change_password(self.session_token, old_password, new_password)
         if success:
-            self.set_status("Password changed successfully")
-            print(f"\n{message}")
-        else:
-            self.set_status("Failed to change password")
-            print(f"\nError: {message}")
-
-        pause_and_continue()
-
-    def handle_change_password(self):
-        """Handle password change."""
-        self.display_header("Change Password")
-        old_password = getpass.getpass("Enter current password: ")
-        new_password = getpass.getpass("Enter new password: ")
-        confirm_password = getpass.getpass("Confirm new password: ")
-
-        if new_password != confirm_password:
-            print("\nPasswords do not match.")
-            pause_and_continue()
-            return
-
-        if self.auth_manager.change_password(self.current_user, old_password, new_password):
             self.set_status("Password changed successfully")
             print("\nPassword changed successfully.")
         else:
             self.set_status("Failed to change password")
-            print("\nFailed to change password. Incorrect current password.")
+            print(f"\nFailed to change password: {msg}")
+
         pause_and_continue()
 
-
-    def print_menu(self):
-        """Display the main menu options."""
-        self.display_header("Xel'thor Translator")
-        menu_items = [
-            "English to Xel'thor",
-            "Xel'thor to English",
-            "View vocabulary",
-            "View grammar rules",
-            "View special phrases",
-            "Dictionary Management (Auth Required)",
-            "Backup Management (Auth Required)",
-            "User Management (Admin Only)",
-            "Change Password",
-            "Logout" if self.current_user else "Login",
-            "Exit"
-        ]
-        for idx, item in enumerate(menu_items, 1):
-            print(f"{idx:2d}. {item}")
-
-        self.display_footer()
-
-    def run(self):
-        """Main application loop."""
-        while True:
-            try:
-                self.print_menu()
-                choice = self.get_user_input("\nEnter your choice (1-11 or 0 to exit): ")
-
-                if choice == "0":
-                    self.display_header("Farewell")
-                    print("Farewell, star wanderer!")
-                    break
-                elif choice == "1":
-                    self.handle_translation('to_xelthor')
-                elif choice == "2":
-                    self.handle_translation('from_xelthor')
-                elif choice == "3":
-                    self.view_vocabulary()
-                elif choice == "4":
-                    self.display_header("Grammar Rules")
-                    print("1. Sentence Structure: Verb-Object-Subject (VOS)")
-                    print("2. Prefixes:")
-                    print("   - xel- : physical objects")
-                    print("   - vor- : energy concepts")
-                    print("   - mii- : abstract concepts")
-                    print("3. Tense Markers:")
-                    print("   - Present: no marker")
-                    print("   - Past: -pa (descending tone)")
-                    print("   - Future: -zi (ascending tone)")
-                    print("   - Eternal: -th (harmonic tone)")
-                    pause_and_continue()
-                elif choice == "5":
-                    self.display_header("Special Phrases")
-                    phrases = self.translator.special_phrases
-                    if phrases:
-                        for eng, xel in phrases.items():
-                            print(f"{eng:20} = {xel}")
-                    else:
-                        print("No special phrases defined yet.")
-                    pause_and_continue()
-                elif choice == "6":
-                    self.handle_dictionary_management()
-                elif choice == "7":
-                    self.handle_backup_management()
-                elif choice == "8":  # User Management
-                    if self.session_token:
-                        valid, session = self.auth_manager.verify_session(self.session_token)
-                        if valid and session["role"] == "admin":
-                            self.handle_user_management()
-                        else:
-                            print("\nThis feature requires admin privileges.")
-                            pause_and_continue()
-                    else:
-                        print("\nThis feature requires admin privileges.")
-                        pause_and_continue()
-                elif choice == "9":  # Change Password
-                    if self.current_user:
-                        self.change_password()
-                    else:
-                        print("\nYou must be logged in to change password.")
-                        pause_and_continue()
-                elif choice == "10":  # Login/Logout
-                    if self.current_user:
-                        self.logout()
-                    else:
-                        self.login()
-                elif choice == "11":  # Exit
-                    self.display_header("Farewell")
-                    print("Farewell, star wanderer!")
-                    break
-                else:
-                    print("\nInvalid choice. Please enter a number between 1 and 11.")
-                    pause_and_continue()
-            except Exception as e:
-                print(f"\nAn error occurred: {str(e)}")
-                pause_and_continue()
-
-            except KeyboardInterrupt:
-                self.display_header("Exit")
-                print("Program terminated. Farewell!")
-                break
 
 if __name__ == "__main__":
     interface = XelthorInterface()
