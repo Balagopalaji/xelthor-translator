@@ -92,61 +92,10 @@ def add_new_word(translator):
             print("Invalid format! Please follow the prefix guidelines.")
 
     # Add word to dictionary
-    try:
-        translator.add_new_word(english, xelthor, category)
+    if translator.add_new_word(english, xelthor, category):
         print(f"\nSuccessfully added: {english} = {xelthor}")
-    except Exception as e:
-        print(f"\nError adding word: {e}")
-
-def print_grammar_rules():
-    """Display the Xel'thor grammar rules."""
-    print("\nXel'thor Grammar Rules:")
-    print("1. Sentence Structure: Verb-Object-Subject (VOS)")
-    print("2. Prefixes:")
-    print("   - xel- : physical objects")
-    print("   - vor- : energy concepts")
-    print("   - mii- : abstract concepts")
-    print("3. Tense Markers:")
-    print("   - Present: no marker")
-    print("   - Past: -pa (descending tone)")
-    print("   - Future: -zi (ascending tone)")
-    print("   - Eternal: -th (harmonic tone)")
-    print("\nExample: 'zz'rix-pa xel'thor vor'thal'")
-    print("Means: 'The traveler traveled through space' (past tense)")
-
-def print_special_phrases(translator):
-    """Display special Xel'thor phrases and their meanings."""
-    print("\nXel'thor Special Phrases:")
-    print("-" * 40)
-    for eng, xel in translator.special_phrases.items():
-        print(f"{eng:20} = {xel}")
-
-def display_vocabulary(translator):
-    """Display the current vocabulary categorized by type."""
-    print("\nCurrent Vocabulary:")
-    print("-" * 40)
-
-    categories = {
-        "Verbs": lambda x: any(x.startswith(p) for p in ["zz'", "ph'", "xa'", "vor'", "mii'"]),
-        "Physical Nouns (xel-)": lambda x: x.startswith("xel'"),
-        "Energy Nouns (vor-)": lambda x: x.startswith("vor'") and len(x) > 4,
-        "Abstract Nouns (mii-)": lambda x: x.startswith("mii'"),
-        "Connectors": lambda x: len(x) <= 4
-    }
-
-    for category, condition in categories.items():
-        print(f"\n{category}:")
-        for eng, xel in sorted(translator.eng_to_xel.items()):
-            if condition(xel):
-                print(f"{eng:15} = {xel}")
-
-def get_valid_choice(max_choice):
-    """Get and validate user menu choice."""
-    while True:
-        choice = input(f"\nEnter your choice (1-{max_choice}): ").strip()
-        if choice.isdigit() and 1 <= int(choice) <= max_choice:
-            return choice
-        print(f"Invalid choice. Please enter a number between 1 and {max_choice}.")
+    else:
+        print("\nFailed to add word. Please try again.")
 
 def main():
     """Main application loop."""
@@ -157,7 +106,7 @@ def main():
         print_header()
         print_menu()
 
-        choice = get_valid_choice(7)
+        choice = input("\nEnter your choice (1-7): ").strip()
 
         if choice == "1":
             text = input("\nEnter English text: ")
@@ -182,13 +131,52 @@ def main():
             print(result)
 
         elif choice == "3":
-            display_vocabulary(translator)
+            print("\nCurrent vocabulary:")
+            print("\nVerbs:")
+            for eng, xel in sorted(translator.eng_to_xel.items()):
+                if any(xel.startswith(p) for p in ["zz'", "ph'", "xa'", "vor'", "mii'"]):
+                    print(f"{eng:15} = {xel}")
+
+            print("\nPhysical Nouns (xel-):")
+            for eng, xel in sorted(translator.eng_to_xel.items()):
+                if xel.startswith("xel'"):
+                    print(f"{eng:15} = {xel}")
+
+            print("\nEnergy Nouns (vor-):")
+            for eng, xel in sorted(translator.eng_to_xel.items()):
+                if xel.startswith("vor'") and len(xel) > 4:
+                    print(f"{eng:15} = {xel}")
+
+            print("\nAbstract Nouns (mii-):")
+            for eng, xel in sorted(translator.eng_to_xel.items()):
+                if xel.startswith("mii'"):
+                    print(f"{eng:15} = {xel}")
+
+            print("\nConnectors:")
+            for eng, xel in sorted(translator.eng_to_xel.items()):
+                if len(xel) <= 4:
+                    print(f"{eng:15} = {xel}")
 
         elif choice == "4":
-            print_grammar_rules()
+            print("\nXel'thor Grammar Rules:")
+            print("1. Sentence Structure: Verb-Object-Subject (VOS)")
+            print("2. Prefixes:")
+            print("   - xel- : physical objects")
+            print("   - vor- : energy concepts")
+            print("   - mii- : abstract concepts")
+            print("3. Tense Markers:")
+            print("   - Present: no marker")
+            print("   - Past: -pa (descending tone)")
+            print("   - Future: -zi (ascending tone)")
+            print("   - Eternal: -th (harmonic tone)")
+            print("\nExample: 'zz'rix-pa xel'thor vor'thal'")
+            print("Means: 'The traveler traveled through space' (past tense)")
 
         elif choice == "5":
-            print_special_phrases(translator)
+            print("\nXel'thor Special Phrases:")
+            print("-" * 40)
+            for eng, xel in translator.special_phrases.items():
+                print(f"{eng:20} = {xel}")
 
         elif choice == "6":
             add_new_word(translator)
@@ -197,13 +185,14 @@ def main():
             print("\nFarewell, star wanderer!")
             break
 
-        input("\nPress Enter to continue...")
+        else:
+            print("\nInvalid choice. Please try again.")
+
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        clear_screen()
         print("\nProgram terminated by user. Farewell!")
     except Exception as e:
         print(f"\nAn unexpected error occurred: {str(e)}")
