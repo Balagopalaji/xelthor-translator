@@ -1,13 +1,23 @@
 """Main application for the Xel'thor Translator."""
 import os
 import getpass
+import shutil
 from translator import XelthorTranslator
 from auth_manager import AuthManager
 from dictionary_manager import DictionaryManager
+import time # Added for loading indicator simulation
 
 def clear_screen():
     """Clear the console screen."""
     os.system('cls' if os.name == 'nt' else 'clear')
+
+def get_terminal_size():
+    """Get the terminal size or default to 80x24."""
+    try:
+        columns, _ = shutil.get_terminal_size()
+        return max(60, min(columns, 100))  # Keep width between 60 and 100
+    except:
+        return 80
 
 class XelthorInterface:
     def __init__(self):
@@ -15,69 +25,140 @@ class XelthorInterface:
         self.auth_manager = AuthManager()
         self.dictionary_manager = DictionaryManager()
         self.current_user = None
+        self.screen_width = get_terminal_size()
+        self.status_message = ""
+
+    def set_status(self, message):
+        """Set a status message to display at the bottom of the screen."""
+        self.status_message = message
+
+    def display_header(self, title):
+        """Display a formatted header."""
+        clear_screen()
+        print("\n" + "="*self.screen_width)
+        print(f"{title:^{self.screen_width}}")
+        print("="*self.screen_width + "\n")
+
+    def display_footer(self):
+        """Display the status bar and navigation hints."""
+        print("\n" + "-"*self.screen_width)
+        if self.status_message:
+            print(f"Status: {self.status_message}")
+        print("Navigation: [Enter] Continue | [←/→] Navigate | [Ctrl+C] Exit")
+        print("-"*self.screen_width)
+
+    def paginate_list(self, items, page_size=10):
+        """Display a paginated list of items."""
+        total_pages = (len(items) + page_size - 1) // page_size
+        current_page = 1
+
+        while True:
+            start_idx = (current_page - 1) * page_size
+            end_idx = min(start_idx + page_size, len(items))
+
+            self.display_header(f"Page {current_page} of {total_pages}")
+
+            # Display items with proper formatting
+            for idx, item in enumerate(items[start_idx:end_idx], start=start_idx + 1):
+                if isinstance(item, tuple):
+                    eng, xel = item
+                    print(f"{idx:3d}. {eng:20} = {xel}")
+                else:
+                    print(f"{idx:3d}. {item}")
+
+            print("\nNavigation:")
+            print("n/→ - Next page")
+            print("p/← - Previous page")
+            print("q   - Return to menu")
+
+            self.display_footer()
+
+            choice = input("\nEnter choice: ").lower()
+            if choice in ['n', 'right'] and current_page < total_pages:
+                current_page += 1
+            elif choice in ['p', 'left'] and current_page > 1:
+                current_page -= 1
+            elif choice == 'q':
+                break
 
     def login(self):
         """Handle user login."""
-        print("\n=== Login ===")
+        self.display_header("Login")
         username = input("Username: ")
         password = getpass.getpass("Password: ")
 
         if self.auth_manager.verify_credentials(username, password):
             self.current_user = username
+            self.set_status(f"Logged in as {username}")
             return True
         return False
 
     def print_menu(self):
         """Display the main menu options."""
-        clear_screen()
-        print("\n=== Xel'thor Translator ===")
-        print("1. English to Xel'thor")
-        print("2. Xel'thor to English")
-        print("3. View vocabulary")
-        print("4. View grammar rules")
-        print("5. View special phrases")
-        print("6. Dictionary Management (Auth Required)")
-        print("7. Backup Management (Auth Required)")
-        print("8. Exit")
-        print("========================")
+        self.display_header("Xel'thor Translator")
+        menu_items = [
+            "English to Xel'thor",
+            "Xel'thor to English",
+            "View vocabulary",
+            "View grammar rules",
+            "View special phrases",
+            "Dictionary Management (Auth Required)",
+            "Backup Management (Auth Required)",
+            "Exit"
+        ]
+        for idx, item in enumerate(menu_items, 1):
+            print(f"{idx:2d}. {item}")
+
+        self.display_footer()
 
     def require_auth(self, func):
         """Decorator to require authentication for certain functions."""
         def wrapper(*args, **kwargs):
             if self.current_user is None:
-                print("\nAuthorization required. Please login first.")
+                self.display_header("Authorization Required")
                 if not self.login():
-                    print("Authentication failed.")
+                    print("\nAuthentication failed.")
                     return
             return func(*args, **kwargs)
         return wrapper
 
     def handle_translation(self, direction='to_xelthor'):
         """Handle translation in either direction."""
+        self.display_header("Translation")
         if direction == 'to_xelthor':
-            text = input("\nEnter English text: ")
+            text = input("Enter English text: ")
             print("\nSelect tense:")
             print("1. Present")
             print("2. Past")
             print("3. Future")
             print("4. Eternal")
-            tense_choice = input("Enter tense (1-4): ")
+            tense_choice = input("\nEnter tense (1-4): ")
 
             tense_map = {"1": "present", "2": "past", "3": "future", "4": "eternal"}
             tense = tense_map.get(tense_choice, "present")
 
+            self.display_header("Translation Result")
+            self.set_status("Translating...") #Simulate loading
+            time.sleep(1) #Simulate a delay
             result = self.translator.translate_to_xelthor(text, tense)
-            print("\nXel'thor translation:")
+            self.set_status("") #Clear loading message
+            print("Xel'thor translation:")
         else:
-            text = input("\nEnter Xel'thor text: ")
+            text = input("Enter Xel'thor text: ")
+            self.display_header("Translation Result")
+            self.set_status("Translating...") #Simulate loading
+            time.sleep(1) #Simulate a delay
             result = self.translator.translate_to_english(text)
-            print("\nEnglish translation:")
+            self.set_status("") #Clear loading message
+            print("English translation:")
 
+        print("-" * self.screen_width)
         print(result)
+        print("-" * self.screen_width)
+        self.display_footer()
 
     def view_vocabulary(self):
         """Display the current vocabulary."""
-        print("\nCurrent vocabulary:")
         categories = {
             "Verbs": lambda x: any(x.startswith(p) for p in ["zz'", "ph'", "xa'", "vor'", "mii'"]),
             "Physical Nouns (xel-)": lambda x: x.startswith("xel'"),
@@ -87,23 +168,35 @@ class XelthorInterface:
         }
 
         for category, check_func in categories.items():
-            print(f"\n{category}:")
-            for eng, xel in sorted(self.translator.eng_to_xel.items()):
-                if check_func(xel):
-                    print(f"{eng:15} = {xel}")
+            self.display_header(f"Vocabulary - {category}")
+            words = [(eng, xel) for eng, xel in sorted(self.translator.eng_to_xel.items()) 
+                    if check_func(xel)]
+
+            if words:
+                self.paginate_list(words)
+            else:
+                print("(No words in this category)")
+
+            self.display_footer()
+            input("\nPress Enter to continue...")
 
     def handle_dictionary_management(self):
         """Handle dictionary management operations."""
         self.require_auth(lambda: None)()
 
         while True:
-            print("\n=== Dictionary Management ===")
-            print("1. Add new word")
-            print("2. Edit existing word")
-            print("3. Remove word")
-            print("4. Add special phrase")
-            print("5. Remove special phrase")
-            print("6. Back to main menu")
+            self.display_header("Dictionary Management")
+            menu_items = [
+                "Add new word",
+                "Edit existing word",
+                "Remove word",
+                "Add special phrase",
+                "Remove special phrase",
+                "Back to main menu"
+            ]
+            for idx, item in enumerate(menu_items, 1):
+                print(f"{idx}. {item}")
+            print("\n" + "="*self.screen_width)
 
             choice = input("\nEnter your choice (1-6): ")
 
@@ -113,81 +206,120 @@ class XelthorInterface:
                 break
             else:
                 print("\nFeature coming soon!")
+                self.display_footer()
+                input("\nPress Enter to continue...")
 
     def handle_backup_management(self):
         """Handle backup management operations."""
         self.require_auth(lambda: None)()
 
         while True:
-            print("\n=== Backup Management ===")
-            print("1. Create backup")
-            print("2. List backups")
-            print("3. Restore from backup")
-            print("4. Back to main menu")
+            self.display_header("Backup Management")
+            menu_items = [
+                "Create backup",
+                "List backups",
+                "Restore from backup",
+                "Back to main menu"
+            ]
+            for idx, item in enumerate(menu_items, 1):
+                print(f"{idx}. {item}")
+            print("\n" + "="*self.screen_width)
 
             choice = input("\nEnter your choice (1-4): ")
 
             if choice == "1":
+                self.set_status("Creating backup...")
                 backup_file = self.dictionary_manager.create_backup()
                 if backup_file:
+                    self.set_status("Backup created successfully")
                     print(f"\nBackup created: {backup_file}")
                 else:
+                    self.set_status("Failed to create backup")
                     print("\nFailed to create backup.")
             elif choice == "2":
                 backups = self.dictionary_manager.list_backups()
                 if backups:
-                    print("\nAvailable backups:")
-                    for i, backup in enumerate(backups, 1):
-                        print(f"{i}. {backup}")
+                    self.paginate_list(backups)
                 else:
                     print("\nNo backups available.")
             elif choice == "3":
-                backups = self.dictionary_manager.list_backups()
-                if not backups:
-                    print("\nNo backups available.")
-                    continue
-
-                print("\nAvailable backups:")
-                for i, backup in enumerate(backups, 1):
-                    print(f"{i}. {backup}")
-
-                try:
-                    idx = int(input("\nEnter backup number to restore: ")) - 1
-                    if 0 <= idx < len(backups):
-                        backup_file = os.path.join(self.dictionary_manager.backup_dir, backups[idx])
-                        if self.dictionary_manager.restore_backup(backup_file):
-                            self.translator.reload_dictionary()
-                            print("\nBackup restored successfully.")
-                        else:
-                            print("\nFailed to restore backup.")
-                    else:
-                        print("\nInvalid backup number.")
-                except ValueError:
-                    print("\nInvalid input.")
+                self.handle_backup_restore()
             elif choice == "4":
                 break
 
+            self.display_footer()
+            input("\nPress Enter to continue...")
+
+    def handle_backup_restore(self):
+        """Handle the backup restoration process."""
+        backups = self.dictionary_manager.list_backups()
+        if not backups:
+            print("\nNo backups available.")
+            return
+
+        self.display_header("Restore Backup")
+        print("Available backups:")
+        for i, backup in enumerate(backups, 1):
+            print(f"{i}. {backup}")
+        print("\n" + "="*self.screen_width)
+
+        try:
+            idx = int(input("\nEnter backup number to restore (or 0 to cancel): ")) - 1
+            if idx == -1:
+                return
+            if 0 <= idx < len(backups):
+                backup_file = os.path.join(self.dictionary_manager.backup_dir, backups[idx])
+                self.set_status("Restoring backup...")
+                if self.dictionary_manager.restore_backup(backup_file):
+                    self.translator.reload_dictionary()
+                    self.set_status("Backup restored successfully")
+                    print("\nBackup restored successfully.")
+                else:
+                    self.set_status("Failed to restore backup")
+                    print("\nFailed to restore backup.")
+            else:
+                print("\nInvalid backup number.")
+        except ValueError:
+            print("\nInvalid input.")
+        self.display_footer()
+
     def add_new_word(self):
         """Add a new word to the dictionary."""
-        print("\n=== Add New Word ===")
+        self.display_header("Add New Word")
 
-        english = input("\nEnter English word: ").lower().strip()
+        english = input("Enter English word (or 'cancel' to abort): ").lower().strip()
+        if english == 'cancel':
+            return
+
         if english in self.translator.eng_to_xel:
             print(f"\nWord '{english}' already exists with translation: {self.translator.eng_to_xel[english]}")
+            self.display_footer()
+            input("\nPress Enter to continue...")
             return
 
-        print("\nSelect word category:")
-        print("1. Verb")
-        print("2. Physical noun (xel-)")
-        print("3. Energy concept (vor-)")
-        print("4. Abstract concept (mii-)")
-        print("5. Connector/Preposition")
+        self.display_header("Word Category")
+        categories = [
+            "Verb",
+            "Physical noun (xel-)",
+            "Energy concept (vor-)",
+            "Abstract concept (mii-)",
+            "Connector/Preposition"
+        ]
+        for idx, category in enumerate(categories, 1):
+            print(f"{idx}. {category}")
+        print("\n" + "="*self.screen_width)
 
-        category = input("Enter category (1-5): ")
+        category = input("\nEnter category (1-5 or 'cancel'): ")
+        if category == 'cancel':
+            return
+
         if category not in ["1", "2", "3", "4", "5"]:
             print("\nInvalid category.")
+            self.display_footer()
+            input("\nPress Enter to continue...")
             return
 
+        self.display_header("Xel'thor Translation")
         prefix_map = {
             "1": ["zz'", "ph'", "xa'", "vor'", "mii'"],
             "2": ["xel'"],
@@ -196,7 +328,7 @@ class XelthorInterface:
             "5": []
         }
 
-        print("\nPrefix guidelines:")
+        print("Prefix guidelines:")
         if category == "1":
             print("Verbs should start with: zz', ph', xa', vor', or mii'")
         elif category == "2":
@@ -207,9 +339,13 @@ class XelthorInterface:
             print("Abstract concepts should start with: mii'")
         else:
             print("Connectors should be short (1-4 characters)")
+        print("\n" + "="*self.screen_width)
 
         while True:
-            xelthor = input("\nEnter Xel'thor translation: ").lower().strip()
+            xelthor = input("\nEnter Xel'thor translation (or 'cancel' to abort): ").lower().strip()
+
+            if xelthor == 'cancel':
+                return
 
             if category == "5":
                 if len(xelthor) <= 4:
@@ -217,12 +353,18 @@ class XelthorInterface:
             else:
                 if any(xelthor.startswith(prefix) for prefix in prefix_map[category]):
                     break
-            print("Invalid format! Please follow the prefix guidelines.")
+            print("\nInvalid format! Please follow the prefix guidelines.")
 
+        self.display_header("Result")
+        self.set_status("Adding new word...")
         if self.translator.add_new_word(english, xelthor, category):
-            print(f"\nSuccessfully added: {english} = {xelthor}")
+            self.set_status("Word added successfully")
+            print(f"Successfully added: {english} = {xelthor}")
         else:
-            print("\nFailed to add word. Please try again.")
+            self.set_status("Failed to add word")
+            print("Failed to add word. Please try again.")
+        self.display_footer()
+        input("\nPress Enter to continue...")
 
     def run(self):
         """Main application loop."""
@@ -238,7 +380,7 @@ class XelthorInterface:
                 elif choice == "3":
                     self.view_vocabulary()
                 elif choice == "4":
-                    print("\nXel'thor Grammar Rules:")
+                    self.display_header("Grammar Rules")
                     print("1. Sentence Structure: Verb-Object-Subject (VOS)")
                     print("2. Prefixes:")
                     print("   - xel- : physical objects")
@@ -250,7 +392,7 @@ class XelthorInterface:
                     print("   - Future: -zi (ascending tone)")
                     print("   - Eternal: -th (harmonic tone)")
                 elif choice == "5":
-                    print("\nXel'thor Special Phrases:")
+                    self.display_header("Special Phrases")
                     for eng, xel in self.translator.special_phrases.items():
                         print(f"{eng:20} = {xel}")
                 elif choice == "6":
@@ -258,18 +400,23 @@ class XelthorInterface:
                 elif choice == "7":
                     self.handle_backup_management()
                 elif choice == "8":
-                    print("\nFarewell, star wanderer!")
+                    self.display_header("Farewell")
+                    print("Farewell, star wanderer!")
                     break
                 else:
                     print("\nInvalid choice. Please try again.")
 
-                input("\nPress Enter to continue...")
+                if choice not in ["6", "7", "8"]:  # Skip for menu options that handle their own continue prompt
+                    self.display_footer()
+                    input("\nPress Enter to continue...")
 
             except KeyboardInterrupt:
-                print("\nProgram terminated by user. Farewell!")
+                self.display_header("Exit")
+                print("Program terminated by user. Farewell!")
                 break
             except Exception as e:
                 print(f"\nAn error occurred: {str(e)}")
+                self.display_footer()
                 input("\nPress Enter to continue...")
 
 if __name__ == "__main__":
