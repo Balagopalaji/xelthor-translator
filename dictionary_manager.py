@@ -10,12 +10,82 @@ class DictionaryManager:
     def __init__(self, dictionary_file='xelthor_dictionary.py', backup_dir='dictionary_backups'):
         self.dictionary_file = dictionary_file
         self.backup_dir = backup_dir
+        self.prefix_map = {
+            "1": ["zz'", "ph'", "xa'", "vor'", "mii'"],  # Verbs
+            "2": ["xel'"],  # Physical nouns
+            "3": ["vor'"],  # Energy concepts
+            "4": ["mii'"],  # Abstract concepts
+            "5": []  # Connectors
+        }
+        # Valid consonant combinations based on phonology rules
+        self.valid_consonants = ['x', 'th', "k'", 'zz', 'ph', "r'"]
+        # Harmonized vowel pairs
+        self.harmonized_vowels = ['aa', 'ee', 'ii', 'oo', 'uu']
+        # Default prefixes for each category
+        self.default_prefix = {
+            "1": "zz'",  # Default verb prefix
+            "2": "xel'", # Default physical prefix
+            "3": "vor'", # Default energy prefix
+            "4": "mii'", # Default abstract prefix
+            "5": ""      # No prefix for connectors
+        }
         self.ensure_backup_dir()
 
-    def ensure_backup_dir(self):
-        """Create backup directory if it doesn't exist."""
-        if not os.path.exists(self.backup_dir):
-            os.makedirs(self.backup_dir)
+    def validate_phonology(self, word):
+        """Validate word phonology according to language rules."""
+        # Check for valid consonant combinations
+        has_valid_consonant = any(cons in word for cons in self.valid_consonants)
+        if not has_valid_consonant:
+            return False, "Word must contain at least one valid consonant combination (x, th, k', zz, ph, r')"
+
+        # Check for harmonized vowels
+        for vowel_pair in self.harmonized_vowels:
+            if vowel_pair in word:
+                return True, None
+
+        return True, None  # Allow words without harmonized vowels for flexibility
+
+    def validate_word(self, xelthor, category):
+        """Validate a Xel'thor word according to language rules."""
+        # First check phonology rules
+        is_valid_phon, phon_error = self.validate_phonology(xelthor)
+        if not is_valid_phon:
+            return False, phon_error
+
+        if category == "5":  # Connectors
+            if len(xelthor) > 4:
+                return False, "Connector words must be 4 characters or less"
+            return True, None
+
+        # Check if word has a valid prefix for its category
+        valid_prefixes = self.prefix_map[category]
+        if not any(xelthor.startswith(prefix) for prefix in valid_prefixes):
+            expected_prefixes = ", ".join(valid_prefixes)
+            return False, f"Word must start with one of these prefixes: {expected_prefixes}"
+
+        return True, None
+
+    def add_word(self, english, xelthor, category):
+        """Add a new word to the dictionary with validation."""
+        try:
+            # Validate the word format
+            is_valid, error_msg = self.validate_word(xelthor, category)
+            if not is_valid:
+                print(f"Validation error: {error_msg}")
+                return False
+
+            dictionary = self.read_dictionary()
+
+            # Check for duplicate
+            if english in dictionary['vocabulary']:
+                print(f"Word '{english}' already exists")
+                return False
+
+            dictionary['vocabulary'][english] = xelthor
+            return self.write_dictionary(dictionary)
+        except Exception as e:
+            print(f"Error adding word: {str(e)}")
+            return False
 
     def read_dictionary(self):
         """Read the current dictionary from file."""
@@ -91,12 +161,6 @@ class DictionaryManager:
             print(f"Error listing backups: {str(e)}")
             return []
 
-    def add_word(self, english, xelthor, category):
-        """Add a new word to the dictionary."""
-        dictionary = self.read_dictionary()
-        dictionary['vocabulary'][english] = xelthor
-        return self.write_dictionary(dictionary)
-
     def edit_word(self, english, new_xelthor):
         """Edit an existing word in the dictionary."""
         try:
@@ -157,22 +221,6 @@ class DictionaryManager:
             csv_file = StringIO(csv_content)
             reader = csv.reader(csv_file)
 
-            prefix_map = {
-                "1": ["zz'", "ph'", "xa'", "vor'", "mii'"],  # Verbs
-                "2": ["xel'"],  # Physical nouns
-                "3": ["vor'"],  # Energy concepts
-                "4": ["mii'"],  # Abstract concepts
-                "5": []  # Connectors
-            }
-
-            default_prefix = {
-                "1": "zz'",  # Default verb prefix
-                "2": "xel'", # Default physical prefix
-                "3": "vor'", # Default energy prefix
-                "4": "mii'", # Default abstract prefix
-                "5": ""      # No prefix for connectors
-            }
-
             for row_num, row in enumerate(reader, 1):
                 try:
                     if len(row) != 3:
@@ -181,7 +229,7 @@ class DictionaryManager:
 
                     english, xelthor, category = [x.strip().lower() for x in row]
 
-                    if not category.isdigit() or category not in prefix_map:
+                    if not category.isdigit() or category not in self.prefix_map:
                         errors.append(f"Row {row_num}: Invalid category '{category}'. Must be 1-5")
                         continue
 
@@ -196,12 +244,12 @@ class DictionaryManager:
                             continue
                     else:
                         # Check if word already has a valid prefix
-                        has_valid_prefix = any(xelthor.startswith(prefix) for prefix in prefix_map[category])
+                        has_valid_prefix = any(xelthor.startswith(prefix) for prefix in self.prefix_map[category])
 
                         if not has_valid_prefix:
                             # Add the default prefix for this category
-                            xelthor = default_prefix[category] + xelthor
-                            print(f"Row {row_num}: Added prefix {default_prefix[category]} to '{english}' -> '{xelthor}'")
+                            xelthor = self.default_prefix[category] + xelthor
+                            print(f"Row {row_num}: Added prefix {self.default_prefix[category]} to '{english}' -> '{xelthor}'")
 
                     dictionary['vocabulary'][english] = xelthor
                     success_count += 1
@@ -288,3 +336,8 @@ class DictionaryManager:
             writer.writerow([english, xelthor])
 
         return output.getvalue()
+
+    def ensure_backup_dir(self):
+        """Create backup directory if it doesn't exist."""
+        if not os.path.exists(self.backup_dir):
+            os.makedirs(self.backup_dir)

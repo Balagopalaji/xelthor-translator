@@ -1,0 +1,50 @@
+# Xel'thor: Language of the Star Wanderers
+
+## Phonology
+- Base sounds focus on clicks, trills, and harmonics uncommon in human languages
+- Four distinct tonal levels that modify meaning
+- Consonants include: x, th, k', zz, ph, r' (glottal click)
+- Vowels include standard a,e,i,o,u plus harmonized doubles (aa, ee, ii)
+
+## Grammar Structure
+1. Verb-Object-Subject order (unlike most human languages)
+2. Tenses indicated by tonal shifts rather than word changes
+3. No gender distinctions, but three states of existence:
+   - Physical (prefix: xel-)
+   - Energy (prefix: vor-)
+   - Abstract (prefix: mii-)
+
+## Number System
+- Base-6 numbering (reflecting their six-fingered anatomy)
+- Numbers combine multiplicatively rather than additively
+- Zero concept represented by circular breathing sound
+
+## Writing System
+- Circular glyphs that can be combined into compounds
+- Writing flows in spirals from center outward
+- Three basic shapes form all letters:
+  ○ Circle (representing physical objects)
+  ∆ Triangle (representing energy/action)
+  ~ Wave (representing abstract concepts)
+
+## Basic Vocabulary
+1. xel'thor = star wanderer/traveler
+2. vor'kaan = light energy
+3. mii'path = knowledge/wisdom
+4. zz'rix = to move between (spaces/dimensions)
+5. k'thal = home world/origin point
+6. ph'sor = to communicate/share thoughts
+
+## Example Sentences
+1. "Zz'rix vor'kaan xel'thor" = "Travels through light the star wanderer" 
+   (The star wanderer travels through light)
+2. "Ph'sor mii'path k'thal" = "Shares wisdom homeworld"
+   (The homeworld shares wisdom)
+
+## Cultural Notes
+- Language reflects a species that perceives time non-linearly
+- Heavy emphasis on concepts of movement, energy, and transformation
+- No distinct words for "war" or "boundary" - concepts are alien to their culture
+- Multiple words for types of unity and collective consciousness
+
+Would you like me to expand on any aspect of the language or demonstrate more example sentences? We could also develop specific dialects or explore how the language might evolve in different colonial settlements.
