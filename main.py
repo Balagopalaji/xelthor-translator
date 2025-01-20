@@ -37,6 +37,7 @@ def get_word_category():
         choice = input("Enter category (1-5): ")
         if choice in ["1", "2", "3", "4", "5"]:
             return choice
+        print("Invalid choice. Please enter a number between 1 and 5.")
 
 def validate_xelthor_word(word, category):
     """Validate that the Xel'thor word follows naming conventions."""
@@ -106,94 +107,103 @@ def main():
         print_header()
         print_menu()
 
-        choice = input("\nEnter your choice (1-7): ").strip()
+        try:
+            choice = input("\nEnter your choice (1-7): ").strip()
 
-        if choice == "1":
-            text = input("\nEnter English text: ")
-            print("\nSelect tense:")
-            print("1. Present")
-            print("2. Past")
-            print("3. Future")
-            print("4. Eternal")
-            tense_choice = input("Enter tense (1-4): ")
+            if choice == "1":
+                text = input("\nEnter English text: ")
+                print("\nSelect tense:")
+                print("1. Present")
+                print("2. Past")
+                print("3. Future")
+                print("4. Eternal")
+                tense_choice = input("Enter tense (1-4): ")
 
-            tense_map = {"1": "present", "2": "past", "3": "future", "4": "eternal"}
-            tense = tense_map.get(tense_choice, "present")
+                tense_map = {"1": "present", "2": "past", "3": "future", "4": "eternal"}
+                tense = tense_map.get(tense_choice, "present")
 
-            result = translator.translate_to_xelthor(text, tense)
-            print("\nXel'thor translation:")
-            print(result)
+                result = translator.translate_to_xelthor(text, tense)
+                print("\nXel'thor translation:")
+                print(result)
 
-        elif choice == "2":
-            text = input("\nEnter Xel'thor text: ")
-            result = translator.translate_to_english(text)
-            print("\nEnglish translation:")
-            print(result)
+            elif choice == "2":
+                text = input("\nEnter Xel'thor text: ")
+                result = translator.translate_to_english(text)
+                print("\nEnglish translation:")
+                print(result)
 
-        elif choice == "3":
-            print("\nCurrent vocabulary:")
-            print("\nVerbs:")
-            for eng, xel in sorted(translator.eng_to_xel.items()):
-                if any(xel.startswith(p) for p in ["zz'", "ph'", "xa'", "vor'", "mii'"]):
-                    print(f"{eng:15} = {xel}")
+            elif choice == "3":
+                print("\nCurrent vocabulary:")
+                print("\nVerbs:")
+                for eng, xel in sorted(translator.eng_to_xel.items()):
+                    if any(xel.startswith(p) for p in ["zz'", "ph'", "xa'", "vor'", "mii'"]):
+                        print(f"{eng:15} = {xel}")
 
-            print("\nPhysical Nouns (xel-):")
-            for eng, xel in sorted(translator.eng_to_xel.items()):
-                if xel.startswith("xel'"):
-                    print(f"{eng:15} = {xel}")
+                print("\nPhysical Nouns (xel-):")
+                for eng, xel in sorted(translator.eng_to_xel.items()):
+                    if xel.startswith("xel'"):
+                        print(f"{eng:15} = {xel}")
 
-            print("\nEnergy Nouns (vor-):")
-            for eng, xel in sorted(translator.eng_to_xel.items()):
-                if xel.startswith("vor'") and len(xel) > 4:
-                    print(f"{eng:15} = {xel}")
+                print("\nEnergy Nouns (vor-):")
+                for eng, xel in sorted(translator.eng_to_xel.items()):
+                    if xel.startswith("vor'") and len(xel) > 4:
+                        print(f"{eng:15} = {xel}")
 
-            print("\nAbstract Nouns (mii-):")
-            for eng, xel in sorted(translator.eng_to_xel.items()):
-                if xel.startswith("mii'"):
-                    print(f"{eng:15} = {xel}")
+                print("\nAbstract Nouns (mii-):")
+                for eng, xel in sorted(translator.eng_to_xel.items()):
+                    if xel.startswith("mii'"):
+                        print(f"{eng:15} = {xel}")
 
-            print("\nConnectors:")
-            for eng, xel in sorted(translator.eng_to_xel.items()):
-                if len(xel) <= 4:
-                    print(f"{eng:15} = {xel}")
+                print("\nConnectors:")
+                for eng, xel in sorted(translator.eng_to_xel.items()):
+                    if len(xel) <= 4:
+                        print(f"{eng:15} = {xel}")
 
-        elif choice == "4":
-            print("\nXel'thor Grammar Rules:")
-            print("1. Sentence Structure: Verb-Object-Subject (VOS)")
-            print("2. Prefixes:")
-            print("   - xel- : physical objects")
-            print("   - vor- : energy concepts")
-            print("   - mii- : abstract concepts")
-            print("3. Tense Markers:")
-            print("   - Present: no marker")
-            print("   - Past: -pa (descending tone)")
-            print("   - Future: -zi (ascending tone)")
-            print("   - Eternal: -th (harmonic tone)")
-            print("\nExample: 'zz'rix-pa xel'thor vor'thal'")
-            print("Means: 'The traveler traveled through space' (past tense)")
+            elif choice == "4":
+                print("\nXel'thor Grammar Rules:")
+                print("1. Sentence Structure: Verb-Object-Subject (VOS)")
+                print("2. Prefixes:")
+                print("   - xel- : physical objects")
+                print("   - vor- : energy concepts")
+                print("   - mii- : abstract concepts")
+                print("3. Tense Markers:")
+                print("   - Present: no marker")
+                print("   - Past: -pa (descending tone)")
+                print("   - Future: -zi (ascending tone)")
+                print("   - Eternal: -th (harmonic tone)")
+                print("\nExample: 'zz'rix-pa xel'thor vor'thal'")
+                print("Means: 'The traveler traveled through space' (past tense)")
 
-        elif choice == "5":
-            print("\nXel'thor Special Phrases:")
-            print("-" * 40)
-            for eng, xel in translator.special_phrases.items():
-                print(f"{eng:20} = {xel}")
+            elif choice == "5":
+                print("\nXel'thor Special Phrases:")
+                print("-" * 40)
+                for eng, xel in translator.special_phrases.items():
+                    print(f"{eng:20} = {xel}")
 
-        elif choice == "6":
-            add_new_word(translator)
+            elif choice == "6":
+                add_new_word(translator)
 
-        elif choice == "7":
-            print("\nFarewell, star wanderer!")
+            elif choice == "7":
+                print("\nFarewell, star wanderer!")
+                break
+
+            else:
+                print("\nInvalid choice. Please try again.")
+
+            # Add pause after each action
+            input("\nPress Enter to continue...")
+
+        except KeyboardInterrupt:
+            print("\nProgram terminated by user. Farewell!")
             break
-
-        else:
-            print("\nInvalid choice. Please try again.")
-
+        except Exception as e:
+            print(f"\nAn unexpected error occurred: {str(e)}")
+            print("Please try again.")
+            input("\nPress Enter to continue...")
 
 if __name__ == "__main__":
     try:
         main()
-    except KeyboardInterrupt:
-        print("\nProgram terminated by user. Farewell!")
     except Exception as e:
         print(f"\nAn unexpected error occurred: {str(e)}")
         print("Please restart the application.")
