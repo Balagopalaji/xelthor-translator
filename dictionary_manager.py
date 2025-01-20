@@ -94,3 +94,49 @@ class DictionaryManager:
         dictionary = self.read_dictionary()
         dictionary['vocabulary'][english] = xelthor
         return self.write_dictionary(dictionary)
+
+    def edit_word(self, english, new_xelthor):
+        """Edit an existing word in the dictionary."""
+        try:
+            dictionary = self.read_dictionary()
+            if english in dictionary['vocabulary']:
+                dictionary['vocabulary'][english] = new_xelthor
+                return self.write_dictionary(dictionary)
+            return False
+        except Exception as e:
+            print(f"Error editing word: {str(e)}")
+            return False
+
+    def remove_word(self, english):
+        """Remove a word from the dictionary."""
+        try:
+            dictionary = self.read_dictionary()
+            if english in dictionary['vocabulary']:
+                del dictionary['vocabulary'][english]
+                return self.write_dictionary(dictionary)
+            return False
+        except Exception as e:
+            print(f"Error removing word: {str(e)}")
+            return False
+
+    def add_special_phrase(self, english, xelthor):
+        """Add a new special phrase to the dictionary."""
+        try:
+            dictionary = self.read_dictionary()
+            dictionary['special_phrases'][english] = xelthor
+            return self.write_dictionary(dictionary)
+        except Exception as e:
+            print(f"Error adding special phrase: {str(e)}")
+            return False
+
+    def remove_special_phrase(self, english):
+        """Remove a special phrase from the dictionary."""
+        try:
+            dictionary = self.read_dictionary()
+            if english in dictionary['special_phrases']:
+                del dictionary['special_phrases'][english]
+                return self.write_dictionary(dictionary)
+            return False
+        except Exception as e:
+            print(f"Error removing special phrase: {str(e)}")
+            return False

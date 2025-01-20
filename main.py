@@ -208,10 +208,18 @@ class XelthorInterface:
 
             if choice == "1":
                 self.add_new_word()
+            elif choice == "2":
+                self.edit_word()
+            elif choice == "3":
+                self.remove_word()
+            elif choice == "4":
+                self.add_special_phrase()
+            elif choice == "5":
+                self.remove_special_phrase()
             elif choice == "6":
                 break
             else:
-                print("\nFeature coming soon!")
+                print("\nInvalid choice. Please try again.")
                 self.display_footer()
                 input("\nPress Enter to continue...")
 
@@ -369,6 +377,165 @@ class XelthorInterface:
         else:
             self.set_status("Failed to add word")
             print("Failed to add word. Please try again.")
+        self.display_footer()
+        input("\nPress Enter to continue...")
+
+    def edit_word(self):
+        """Edit an existing word in the dictionary."""
+        self.display_header("Edit Word")
+
+        # Display current vocabulary for reference
+        print("Current vocabulary:")
+        words = sorted(self.translator.eng_to_xel.items())
+        for idx, (eng, xel) in enumerate(words, 1):
+            print(f"{idx:3d}. {eng:20} = {xel}")
+
+        print("\n" + "="*self.screen_width)
+        english = input("\nEnter English word to edit (or 'cancel' to abort): ").lower().strip()
+
+        if english == 'cancel':
+            return
+
+        if english not in self.translator.eng_to_xel:
+            print(f"\nWord '{english}' not found in dictionary.")
+            self.display_footer()
+            input("\nPress Enter to continue...")
+            return
+
+        current_xelthor = self.translator.eng_to_xel[english]
+        print(f"\nCurrent translation: {current_xelthor}")
+
+        new_xelthor = input("\nEnter new Xel'thor translation (or 'cancel' to abort): ").lower().strip()
+        if new_xelthor == 'cancel':
+            return
+
+        self.set_status("Updating word...")
+        if self.dictionary_manager.edit_word(english, new_xelthor):
+            self.translator.reload_dictionary()
+            self.set_status("Word updated successfully")
+            print(f"\nSuccessfully updated: {english} = {new_xelthor}")
+        else:
+            self.set_status("Failed to update word")
+            print("\nFailed to update word. Please try again.")
+
+        self.display_footer()
+        input("\nPress Enter to continue...")
+
+    def remove_word(self):
+        """Remove a word from the dictionary."""
+        self.display_header("Remove Word")
+
+        # Display current vocabulary for reference
+        print("Current vocabulary:")
+        words = sorted(self.translator.eng_to_xel.items())
+        for idx, (eng, xel) in enumerate(words, 1):
+            print(f"{idx:3d}. {eng:20} = {xel}")
+
+        print("\n" + "="*self.screen_width)
+        english = input("\nEnter English word to remove (or 'cancel' to abort): ").lower().strip()
+
+        if english == 'cancel':
+            return
+
+        if english not in self.translator.eng_to_xel:
+            print(f"\nWord '{english}' not found in dictionary.")
+            self.display_footer()
+            input("\nPress Enter to continue...")
+            return
+
+        confirm = input(f"\nAre you sure you want to remove '{english}' = '{self.translator.eng_to_xel[english]}'? (yes/no): ").lower()
+        if confirm != 'yes':
+            print("\nOperation cancelled.")
+            self.display_footer()
+            input("\nPress Enter to continue...")
+            return
+
+        self.set_status("Removing word...")
+        if self.dictionary_manager.remove_word(english):
+            self.translator.reload_dictionary()
+            self.set_status("Word removed successfully")
+            print(f"\nSuccessfully removed: {english}")
+        else:
+            self.set_status("Failed to remove word")
+            print("\nFailed to remove word. Please try again.")
+
+        self.display_footer()
+        input("\nPress Enter to continue...")
+
+    def add_special_phrase(self):
+        """Add a new special phrase to the dictionary."""
+        self.display_header("Add Special Phrase")
+
+        english = input("Enter English phrase (or 'cancel' to abort): ").lower().strip()
+        if english == 'cancel':
+            return
+
+        if english in self.translator.special_phrases:
+            print(f"\nPhrase '{english}' already exists with translation: {self.translator.special_phrases[english]}")
+            self.display_footer()
+            input("\nPress Enter to continue...")
+            return
+
+        xelthor = input("\nEnter Xel'thor translation (or 'cancel' to abort): ").strip()
+        if xelthor == 'cancel':
+            return
+
+        self.set_status("Adding special phrase...")
+        if self.dictionary_manager.add_special_phrase(english, xelthor):
+            self.translator.reload_dictionary()
+            self.set_status("Special phrase added successfully")
+            print(f"\nSuccessfully added special phrase: {english} = {xelthor}")
+        else:
+            self.set_status("Failed to add special phrase")
+            print("\nFailed to add special phrase. Please try again.")
+
+        self.display_footer()
+        input("\nPress Enter to continue...")
+
+    def remove_special_phrase(self):
+        """Remove a special phrase from the dictionary."""
+        self.display_header("Remove Special Phrase")
+
+        # Display current special phrases for reference
+        print("Current special phrases:")
+        phrases = sorted(self.translator.special_phrases.items())
+        for idx, (eng, xel) in enumerate(phrases, 1):
+            print(f"{idx:3d}. {eng:20} = {xel}")
+
+        if not phrases:
+            print("\nNo special phrases found in dictionary.")
+            self.display_footer()
+            input("\nPress Enter to continue...")
+            return
+
+        print("\n" + "="*self.screen_width)
+        english = input("\nEnter English phrase to remove (or 'cancel' to abort): ").lower().strip()
+
+        if english == 'cancel':
+            return
+
+        if english not in self.translator.special_phrases:
+            print(f"\nPhrase '{english}' not found in dictionary.")
+            self.display_footer()
+            input("\nPress Enter to continue...")
+            return
+
+        confirm = input(f"\nAre you sure you want to remove '{english}' = '{self.translator.special_phrases[english]}'? (yes/no): ").lower()
+        if confirm != 'yes':
+            print("\nOperation cancelled.")
+            self.display_footer()
+            input("\nPress Enter to continue...")
+            return
+
+        self.set_status("Removing special phrase...")
+        if self.dictionary_manager.remove_special_phrase(english):
+            self.translator.reload_dictionary()
+            self.set_status("Special phrase removed successfully")
+            print(f"\nSuccessfully removed: {english}")
+        else:
+            self.set_status("Failed to remove special phrase")
+            print("\nFailed to remove special phrase. Please try again.")
+
         self.display_footer()
         input("\nPress Enter to continue...")
 
